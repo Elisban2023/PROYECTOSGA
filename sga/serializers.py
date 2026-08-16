@@ -563,6 +563,7 @@ class AnioAcademicoSerializer(serializers.ModelSerializer):
             "fecha_inicio",
             "fecha_fin",
             "estado",
+            "activo",
         )
 
 
@@ -579,6 +580,7 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
             "fecha_inicio",
             "fecha_fin",
             "estado",
+            "activo",
         )
 
 
@@ -589,6 +591,7 @@ class GradoSerializer(serializers.ModelSerializer):
             "id",
             "nombre",
             "nivel",
+            "activo",
         )
 
 
@@ -602,6 +605,7 @@ class SeccionSerializer(serializers.ModelSerializer):
             "grado",
             "grado_label",
             "nombre",
+            "activo",
         )
 
 

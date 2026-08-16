@@ -293,6 +293,7 @@ class AnioAcademico(models.Model):
         choices=EstadoAcademico.choices,
         default=EstadoAcademico.PLANIFICADO,
     )
+    activo = models.BooleanField(default=True)
 
     def activar(self):
         """Equivale a activar() del UML."""
@@ -322,6 +323,7 @@ class PeriodoAcademico(models.Model):
         choices=EstadoAcademico.choices,
         default=EstadoAcademico.PLANIFICADO,
     )
+    activo = models.BooleanField(default=True)
 
     def cerrar(self):
         """Equivale a cerrar() del UML."""
@@ -343,6 +345,7 @@ class PeriodoAcademico(models.Model):
 class Grado(models.Model):
     nombre = models.CharField(max_length=100)
     nivel = models.CharField(max_length=100)
+    activo = models.BooleanField(default=True)
 
     def actualizar(self, **datos):
         for campo in ("nombre", "nivel"):
@@ -361,6 +364,7 @@ class Seccion(models.Model):
         related_name="secciones",
     )
     nombre = models.CharField(max_length=50)
+    activo = models.BooleanField(default=True)
 
     def actualizar(self, **datos):
         if "grado" in datos:

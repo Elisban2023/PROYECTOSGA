@@ -177,34 +177,42 @@ class VinculoApoderadoViewSet(HardDeleteViewSet):
 
 
 class AnioAcademicoViewSet(AdminCatalogViewSet):
+    logical_delete_field = "activo"
+    logical_delete_value = False
     queryset = AnioAcademico.objects.all().order_by("-anio")
     serializer_class = AnioAcademicoSerializer
     search_fields = ("anio", "estado")
-    ordering_fields = ("anio", "fecha_inicio", "fecha_fin", "estado")
+    ordering_fields = ("anio", "fecha_inicio", "fecha_fin", "estado", "activo")
 
 
 class PeriodoAcademicoViewSet(AdminCatalogViewSet):
+    logical_delete_field = "activo"
+    logical_delete_value = False
     queryset = PeriodoAcademico.objects.select_related("anio_academico").order_by(
         "-anio_academico__anio",
         "fecha_inicio",
     )
     serializer_class = PeriodoAcademicoSerializer
     search_fields = ("nombre", "estado", "anio_academico__anio")
-    ordering_fields = ("nombre", "fecha_inicio", "fecha_fin", "estado")
+    ordering_fields = ("nombre", "fecha_inicio", "fecha_fin", "estado", "activo")
 
 
 class GradoViewSet(AdminCatalogViewSet):
+    logical_delete_field = "activo"
+    logical_delete_value = False
     queryset = Grado.objects.all().order_by("nivel", "nombre")
     serializer_class = GradoSerializer
     search_fields = ("nombre", "nivel")
-    ordering_fields = ("nombre", "nivel")
+    ordering_fields = ("nombre", "nivel", "activo")
 
 
 class SeccionViewSet(AdminCatalogViewSet):
+    logical_delete_field = "activo"
+    logical_delete_value = False
     queryset = Seccion.objects.select_related("grado").order_by("grado__nivel", "grado__nombre", "nombre")
     serializer_class = SeccionSerializer
     search_fields = ("nombre", "grado__nombre", "grado__nivel")
-    ordering_fields = ("nombre", "grado__nombre", "grado__nivel")
+    ordering_fields = ("nombre", "grado__nombre", "grado__nivel", "activo")
 
 
 class CursoViewSet(AdminCatalogViewSet):
