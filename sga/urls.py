@@ -9,6 +9,7 @@ from .api_views import (
     DocenteViewSet,
     EstudianteViewSet,
     GradoViewSet,
+    MatriculaViewSet,
     PeriodoAcademicoViewSet,
     SeccionViewSet,
     UsuarioViewSet,
@@ -23,6 +24,7 @@ router.register("estudiantes", EstudianteViewSet, basename="estudiante")
 router.register("docentes", DocenteViewSet, basename="docente")
 router.register("apoderados", ApoderadoViewSet, basename="apoderado")
 router.register("vinculos-apoderados", VinculoApoderadoViewSet, basename="vinculo-apoderado")
+router.register("matriculas", MatriculaViewSet, basename="matricula")
 router.register("anios-academicos", AnioAcademicoViewSet, basename="anio-academico")
 router.register("periodos", PeriodoAcademicoViewSet, basename="periodo-academico")
 router.register("grados", GradoViewSet, basename="grado")
