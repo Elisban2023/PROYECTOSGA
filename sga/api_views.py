@@ -1,5 +1,5 @@
 from drf_spectacular.utils import OpenApiTypes, extend_schema
-from rest_framework import filters, viewsets
+from rest_framework import filters, status, viewsets
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -39,9 +39,48 @@ User = get_user_model()
 class AdminCatalogViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAdminUser,)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
+    logical_delete_field = None
+    logical_delete_value = None
+    logical_delete_message = "Registro desactivado correctamente."
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        if not self.apply_logical_delete(instance):
+            return Response(
+                {"detail": "Este recurso no permite eliminacion desde la API."},
+                status=status.HTTP_405_METHOD_NOT_ALLOWED,
+            )
+        return Response({"detail": self.logical_delete_message}, status=status.HTTP_200_OK)
+
+    def apply_logical_delete(self, instance):
+        if self.logical_delete_field is None:
+            return False
+        setattr(instance, self.logical_delete_field, self.logical_delete_value)
+        instance.save(update_fields=[self.logical_delete_field])
+        return True
 
 
-class UsuarioViewSet(AdminCatalogViewSet):
+class HardDeleteViewSet(AdminCatalogViewSet):
+    def destroy(self, request, *args, **kwargs):
+        return viewsets.ModelViewSet.destroy(self, request, *args, **kwargs)
+
+
+class UserDeactivationMixin:
+    logical_delete_message = "Usuario desactivado correctamente."
+
+    def apply_logical_delete(self, instance):
+        user = self.get_user_for_logical_delete(instance)
+        if user.is_superuser and user.pk == self.request.user.pk:
+            return False
+        user.is_active = False
+        user.save(update_fields=["is_active"])
+        return True
+
+    def get_user_for_logical_delete(self, instance):
+        return instance
+
+
+class UsuarioViewSet(UserDeactivationMixin, AdminCatalogViewSet):
     queryset = User.objects.prefetch_related("groups").select_related("perfil").order_by("username")
     serializer_class = UserAccountSerializer
     search_fields = (
@@ -56,7 +95,10 @@ class UsuarioViewSet(AdminCatalogViewSet):
     ordering_fields = ("username", "first_name", "last_name", "email", "is_active", "is_staff")
 
 
-class EstudianteViewSet(AdminCatalogViewSet):
+class EstudianteViewSet(UserDeactivationMixin, AdminCatalogViewSet):
+    def get_user_for_logical_delete(self, instance):
+        return instance.perfil.user
+
     queryset = Estudiante.objects.select_related("perfil__user").order_by("codigo_estudiante")
     serializer_class = EstudianteSerializer
     search_fields = (
@@ -77,7 +119,10 @@ class EstudianteViewSet(AdminCatalogViewSet):
     )
 
 
-class DocenteViewSet(AdminCatalogViewSet):
+class DocenteViewSet(UserDeactivationMixin, AdminCatalogViewSet):
+    def get_user_for_logical_delete(self, instance):
+        return instance.perfil.user
+
     queryset = Docente.objects.select_related("perfil__user").order_by(
         "perfil__user__last_name",
         "perfil__user__first_name",
@@ -99,7 +144,10 @@ class DocenteViewSet(AdminCatalogViewSet):
     )
 
 
-class ApoderadoViewSet(AdminCatalogViewSet):
+class ApoderadoViewSet(UserDeactivationMixin, AdminCatalogViewSet):
+    def get_user_for_logical_delete(self, instance):
+        return instance.perfil.user
+
     queryset = Apoderado.objects.select_related("perfil__user").order_by(
         "perfil__user__last_name",
         "perfil__user__first_name",
@@ -109,7 +157,7 @@ class ApoderadoViewSet(AdminCatalogViewSet):
     ordering_fields = DocenteViewSet.ordering_fields
 
 
-class VinculoApoderadoViewSet(AdminCatalogViewSet):
+class VinculoApoderadoViewSet(HardDeleteViewSet):
     queryset = VinculoApoderado.objects.select_related(
         "apoderado__perfil__user",
         "estudiante__perfil__user",
@@ -160,6 +208,8 @@ class SeccionViewSet(AdminCatalogViewSet):
 
 
 class CursoViewSet(AdminCatalogViewSet):
+    logical_delete_field = "estado"
+    logical_delete_value = False
     queryset = Curso.objects.all().order_by("nombre")
     serializer_class = CursoSerializer
     search_fields = ("nombre", "descripcion")
@@ -167,6 +217,8 @@ class CursoViewSet(AdminCatalogViewSet):
 
 
 class AsignacionCursoViewSet(AdminCatalogViewSet):
+    logical_delete_field = "estado"
+    logical_delete_value = "INACTIVO"
     queryset = AsignacionCurso.objects.select_related(
         "curso",
         "docente__perfil__user",
