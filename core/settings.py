@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "drf_spectacular",
     "sga",
 ]
 
@@ -134,6 +135,38 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
+    "PAGE_SIZE": 20,
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "SGA API",
+    "DESCRIPTION": "API backend del Sistema de Gestion Academica.",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "ENUM_NAME_OVERRIDES": {
+        "EstadoAcademicoEnum": "sga.models.EstadoAcademico.choices",
+        "EstadoGeneralEnum": "sga.models.EstadoGeneral.choices",
+        "EstadoMatriculaEnum": "sga.models.EstadoMatricula.choices",
+        "EstadoAsistenciaEnum": "sga.models.EstadoAsistencia.choices",
+        "ParentescoEnum": "sga.models.Parentesco.choices",
+        "TipoParticipacionEnum": "sga.models.TipoParticipacion.choices",
+        "TipoIncidenciaEnum": "sga.models.TipoIncidencia.choices",
+        "NivelIncidenciaEnum": "sga.models.NivelIncidencia.choices",
+        "EstadoIncidenciaEnum": "sga.models.EstadoIncidencia.choices",
+        "EstadoEnvioEnum": "sga.models.EstadoEnvio.choices",
+        "EstadoRevisionIAEnum": "sga.models.EstadoRevisionIA.choices",
+    },
+}
 
 
 if not DEBUG:
