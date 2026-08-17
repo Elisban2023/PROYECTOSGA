@@ -20,3 +20,4 @@ from .seguimiento import IncidenciaAcademicaViewSet, ObservacionAcademicaViewSet
 from .notificaciones import NotificacionViewSet
 
 from .auditoria import RegistroAuditoriaViewSet
+from .configuracion import ConfiguracionInstitucionalViewSet

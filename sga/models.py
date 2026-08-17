@@ -280,6 +280,36 @@ class RegistroAuditoria(models.Model):
         return f"{usuario} - {self.accion} - {self.entidad}"
 
 
+class ConfiguracionInstitucional(models.Model):
+    """Configuracion general visible para la plataforma SGA."""
+
+    nombre_institucion = models.CharField(max_length=200)
+    codigo_modular = models.CharField(max_length=30, null=True, blank=True)
+    direccion = models.CharField(max_length=250, null=True, blank=True)
+    telefono = models.CharField(max_length=20, null=True, blank=True)
+    email = models.EmailField(null=True, blank=True)
+    director = models.CharField(max_length=150, null=True, blank=True)
+    logo_url = models.URLField(max_length=500, null=True, blank=True)
+    zona_horaria = models.CharField(max_length=50, default="America/Lima")
+    anio_academico_activo = models.ForeignKey(
+        "AnioAcademico",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="configuraciones_activas",
+    )
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(auto_now_add=True)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.nombre_institucion
+
+    class Meta:
+        verbose_name = "Configuracion institucional"
+        verbose_name_plural = "Configuraciones institucionales"
+
+
 # ============================================================
 # ESTRUCTURA ACADÉMICA
 # ============================================================

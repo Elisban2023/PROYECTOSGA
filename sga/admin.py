@@ -8,6 +8,7 @@ from .models import (
     Calificacion,
     Capacidad,
     Competencia,
+    ConfiguracionInstitucional,
     CriterioCalificacion,
     Curso,
     Docente,
@@ -90,6 +91,15 @@ class VinculoApoderadoAdmin(admin.ModelAdmin):
         "estudiante__perfil__user__last_name",
     )
     autocomplete_fields = ("apoderado", "estudiante")
+
+
+@admin.register(ConfiguracionInstitucional)
+class ConfiguracionInstitucionalAdmin(admin.ModelAdmin):
+    list_display = ("nombre_institucion", "codigo_modular", "director", "anio_academico_activo", "activo")
+    list_filter = ("activo", "anio_academico_activo")
+    search_fields = ("nombre_institucion", "codigo_modular", "director", "email")
+    autocomplete_fields = ("anio_academico_activo",)
+    readonly_fields = ("creado_en", "actualizado_en")
 
 
 @admin.register(RegistroAuditoria)

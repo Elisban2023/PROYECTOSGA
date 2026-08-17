@@ -24,3 +24,4 @@ from .seguimiento import (
 from .notificaciones import NotificacionEstadoSerializer, NotificacionSerializer
 
 from .auditoria import RegistroAuditoriaSerializer
+from .configuracion import ConfiguracionInstitucionalSerializer
