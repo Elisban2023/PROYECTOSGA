@@ -15,6 +15,7 @@ from .api import (
     ObservacionAcademicaViewSet,
     PeriodoAcademicoViewSet,
     RecomendacionIAViewSet,
+    RegistroAuditoriaViewSet,
     SeccionViewSet,
     UsuarioViewSet,
     VinculoApoderadoViewSet,
@@ -40,6 +41,7 @@ router.register("grados", GradoViewSet, basename="grado")
 router.register("secciones", SeccionViewSet, basename="seccion")
 router.register("cursos", CursoViewSet, basename="curso")
 router.register("asignaciones-cursos", AsignacionCursoViewSet, basename="asignacion-curso")
+router.register("auditoria", RegistroAuditoriaViewSet, basename="auditoria")
 
 urlpatterns = [
     path("auth/me/", me, name="api-auth-me"),

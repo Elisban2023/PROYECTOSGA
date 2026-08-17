@@ -52,6 +52,7 @@ class NotificacionViewSet(AdminCatalogViewSet):
     def perform_create(self, serializer):
         notificacion = serializer.save(estado_envio=EstadoEnvio.PENDIENTE)
         enviar_notificacion(notificacion)
+        self.registrar_auditoria("CREAR", notificacion)
 
     @action(detail=True, methods=["post"], url_path="reenviar")
     def reenviar(self, request, pk=None):
@@ -60,9 +61,11 @@ class NotificacionViewSet(AdminCatalogViewSet):
         notificacion.fecha_envio = None
         notificacion.save(update_fields=["estado_envio", "fecha_envio"])
         enviar_notificacion(notificacion)
+        self.registrar_auditoria("REENVIAR_NOTIFICACION", notificacion)
         return Response(NotificacionEstadoSerializer(notificacion).data)
 
     @action(detail=True, methods=["post"], url_path="marcar-leida")
     def marcar_leida(self, request, pk=None):
         notificacion = marcar_como_leida(self.get_object())
+        self.registrar_auditoria("MARCAR_NOTIFICACION_LEIDA", notificacion)
         return Response(NotificacionEstadoSerializer(notificacion).data)

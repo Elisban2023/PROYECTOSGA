@@ -22,3 +22,5 @@ from .seguimiento import (
     RecomendacionIASerializer,
 )
 from .notificaciones import NotificacionEstadoSerializer, NotificacionSerializer
+
+from .auditoria import RegistroAuditoriaSerializer

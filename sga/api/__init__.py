@@ -18,3 +18,5 @@ from .usuarios import (
 )
 from .seguimiento import IncidenciaAcademicaViewSet, ObservacionAcademicaViewSet, RecomendacionIAViewSet
 from .notificaciones import NotificacionViewSet
+
+from .auditoria import RegistroAuditoriaViewSet

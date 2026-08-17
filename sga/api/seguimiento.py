@@ -187,4 +187,5 @@ class RecomendacionIAViewSet(AdminCatalogViewSet):
                 "fecha_revision",
             ]
         )
+        self.registrar_auditoria(f"REVISAR_RECOMENDACION_{estado_revision}", recomendacion)
         return Response(self.get_serializer(recomendacion).data)
