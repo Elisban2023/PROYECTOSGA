@@ -15,3 +15,4 @@ from .usuarios import (
     UsuarioViewSet,
     VinculoApoderadoViewSet,
 )
+from .seguimiento import IncidenciaAcademicaViewSet, ObservacionAcademicaViewSet

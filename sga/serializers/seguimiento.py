@@ -1,0 +1,133 @@
+﻿from django.utils import timezone
+from rest_framework import serializers
+
+from sga.models import EstadoIncidencia, IncidenciaAcademica, ObservacionAcademica
+
+
+class ObservacionAcademicaSerializer(serializers.ModelSerializer):
+    estudiante_label = serializers.StringRelatedField(source="matricula.estudiante", read_only=True)
+    estudiante_codigo = serializers.CharField(source="matricula.estudiante.codigo_estudiante", read_only=True)
+    seccion_label = serializers.StringRelatedField(source="matricula.seccion", read_only=True)
+    docente_label = serializers.StringRelatedField(source="docente", read_only=True)
+    asignacion_curso_label = serializers.StringRelatedField(source="asignacion_curso", read_only=True)
+
+    class Meta:
+        model = ObservacionAcademica
+        fields = (
+            "id",
+            "matricula",
+            "estudiante_label",
+            "estudiante_codigo",
+            "seccion_label",
+            "asignacion_curso",
+            "asignacion_curso_label",
+            "docente",
+            "docente_label",
+            "fecha",
+            "categoria",
+            "descripcion",
+            "activo",
+        )
+
+    def validate_categoria(self, value):
+        value = value.strip()
+        if not value:
+            raise serializers.ValidationError("La categoria es obligatoria.")
+        return value
+
+    def validate_descripcion(self, value):
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError("La descripcion debe tener al menos 10 caracteres.")
+        return value
+
+    def validate_fecha(self, value):
+        if value > timezone.now():
+            raise serializers.ValidationError("La fecha de observacion no puede ser futura.")
+        return value
+
+    def validate(self, attrs):
+        matricula = attrs.get("matricula", getattr(self.instance, "matricula", None))
+        docente = attrs.get("docente", getattr(self.instance, "docente", None))
+        asignacion = attrs.get("asignacion_curso", getattr(self.instance, "asignacion_curso", None))
+
+        if matricula is not None and matricula.estado != "ACTIVA":
+            raise serializers.ValidationError({"matricula": "La matricula seleccionada no esta activa."})
+        if docente is not None and not docente.perfil.user.is_active:
+            raise serializers.ValidationError({"docente": "El docente seleccionado esta inactivo."})
+        if asignacion is not None:
+            if asignacion.estado != "ACTIVO":
+                raise serializers.ValidationError({"asignacion_curso": "La asignacion de curso no esta activa."})
+            if matricula is not None and asignacion.seccion_id != matricula.seccion_id:
+                raise serializers.ValidationError({"asignacion_curso": "La asignacion no corresponde a la seccion de la matricula."})
+            if matricula is not None and asignacion.anio_academico_id != matricula.anio_academico_id:
+                raise serializers.ValidationError({"asignacion_curso": "La asignacion no corresponde al anio academico de la matricula."})
+            if docente is not None and asignacion.docente_id != docente.id:
+                raise serializers.ValidationError({"docente": "El docente no pertenece a la asignacion de curso."})
+        return attrs
+
+
+class IncidenciaAcademicaSerializer(serializers.ModelSerializer):
+    estudiante_label = serializers.StringRelatedField(source="matricula.estudiante", read_only=True)
+    estudiante_codigo = serializers.CharField(source="matricula.estudiante.codigo_estudiante", read_only=True)
+    seccion_label = serializers.StringRelatedField(source="matricula.seccion", read_only=True)
+    observacion_label = serializers.StringRelatedField(source="observacion", read_only=True)
+
+    class Meta:
+        model = IncidenciaAcademica
+        fields = (
+            "id",
+            "matricula",
+            "estudiante_label",
+            "estudiante_codigo",
+            "seccion_label",
+            "observacion",
+            "observacion_label",
+            "tipo",
+            "descripcion",
+            "nivel",
+            "estado",
+            "fecha_registro",
+            "fecha_cierre",
+        )
+        read_only_fields = ("fecha_cierre",)
+
+    def validate_descripcion(self, value):
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError("La descripcion debe tener al menos 10 caracteres.")
+        return value
+
+    def validate_fecha_registro(self, value):
+        if value > timezone.now():
+            raise serializers.ValidationError("La fecha de registro no puede ser futura.")
+        return value
+
+    def validate(self, attrs):
+        matricula = attrs.get("matricula", getattr(self.instance, "matricula", None))
+        observacion = attrs.get("observacion", getattr(self.instance, "observacion", None))
+        estado = attrs.get("estado", getattr(self.instance, "estado", EstadoIncidencia.ABIERTA))
+        fecha_registro = attrs.get("fecha_registro", getattr(self.instance, "fecha_registro", None))
+
+        if matricula is not None and matricula.estado != "ACTIVA":
+            raise serializers.ValidationError({"matricula": "La matricula seleccionada no esta activa."})
+        if observacion is not None:
+            if not observacion.activo:
+                raise serializers.ValidationError({"observacion": "La observacion seleccionada esta inactiva."})
+            if matricula is not None and observacion.matricula_id != matricula.id:
+                raise serializers.ValidationError({"observacion": "La observacion no corresponde a la matricula seleccionada."})
+        if estado == EstadoIncidencia.CERRADA and fecha_registro and fecha_registro > timezone.now():
+            raise serializers.ValidationError({"fecha_registro": "No se puede cerrar una incidencia con fecha futura."})
+        return attrs
+
+    def create(self, validated_data):
+        if validated_data.get("estado") == EstadoIncidencia.CERRADA:
+            validated_data["fecha_cierre"] = timezone.now()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        if validated_data.get("estado") == EstadoIncidencia.CERRADA and instance.fecha_cierre is None:
+            validated_data["fecha_cierre"] = timezone.now()
+        if validated_data.get("estado") != EstadoIncidencia.CERRADA:
+            validated_data["fecha_cierre"] = None
+        return super().update(instance, validated_data)

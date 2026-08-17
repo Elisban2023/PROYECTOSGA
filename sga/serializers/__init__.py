@@ -15,3 +15,4 @@ from .usuarios import (
     UserMeSerializer,
     VinculoApoderadoSerializer,
 )
+from .seguimiento import IncidenciaAcademicaSerializer, ObservacionAcademicaSerializer

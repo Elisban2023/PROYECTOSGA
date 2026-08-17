@@ -825,6 +825,7 @@ class ObservacionAcademica(models.Model):
     fecha = models.DateTimeField()
     categoria = models.CharField(max_length=100)
     descripcion = models.TextField()
+    activo = models.BooleanField(default=True)
 
     @classmethod
     def registrar(
