@@ -21,3 +21,10 @@ from .notificaciones import NotificacionViewSet
 
 from .auditoria import RegistroAuditoriaViewSet
 from .configuracion import ConfiguracionInstitucionalViewSet
+from .reportes import (
+    reporte_academico,
+    reporte_incidencias,
+    reporte_matriculas,
+    reporte_notificaciones,
+    reporte_resumen,
+)

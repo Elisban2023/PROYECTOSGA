@@ -23,6 +23,11 @@ from .api import (
     dashboard,
     me,
     menu,
+    reporte_academico,
+    reporte_incidencias,
+    reporte_matriculas,
+    reporte_notificaciones,
+    reporte_resumen,
 )
 
 router = DefaultRouter()
@@ -49,5 +54,10 @@ urlpatterns = [
     path("auth/me/", me, name="api-auth-me"),
     path("auth/menu/", menu, name="api-auth-menu"),
     path("dashboard/", dashboard, name="api-dashboard"),
+    path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
+    path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),
+    path("reportes/incidencias/", reporte_incidencias, name="api-reporte-incidencias"),
+    path("reportes/notificaciones/", reporte_notificaciones, name="api-reporte-notificaciones"),
+    path("reportes/academico/", reporte_academico, name="api-reporte-academico"),
     path("", include(router.urls)),
 ]
