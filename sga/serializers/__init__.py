@@ -16,3 +16,4 @@ from .usuarios import (
     VinculoApoderadoSerializer,
 )
 from .seguimiento import IncidenciaAcademicaSerializer, ObservacionAcademicaSerializer
+from .notificaciones import NotificacionEstadoSerializer, NotificacionSerializer

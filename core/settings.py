@@ -136,6 +136,11 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+SENDGRID_ENABLED = env_bool("SENDGRID_ENABLED", False)
+SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
+SENDGRID_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "")
+SENDGRID_FROM_NAME = os.environ.get("SENDGRID_FROM_NAME", "SGA Institucion Educativa Pitumarca")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",

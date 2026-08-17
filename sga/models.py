@@ -963,6 +963,7 @@ class Notificacion(models.Model):
         null=True,
         blank=True,
     )
+    activo = models.BooleanField(default=True)
 
     def registrar_envio(self, estado_envio, fecha_envio=None):
         """Equivale a registrarEnvio() del UML."""
