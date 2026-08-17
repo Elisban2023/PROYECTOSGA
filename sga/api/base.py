@@ -38,7 +38,9 @@ class UserDeactivationMixin:
 
     def apply_logical_delete(self, instance):
         user = self.get_user_for_logical_delete(instance)
-        if user.is_superuser and user.pk == self.request.user.pk:
+        if user.is_superuser:
+            return False
+        if user.pk == self.request.user.pk:
             return False
         user.is_active = False
         user.save(update_fields=["is_active"])

@@ -18,6 +18,8 @@ from sga.models import (
 
 User = get_user_model()
 ROLE_GROUPS = ("Administrador", "Directivo", "Docente", "Estudiante", "Apoderado")
+ADMIN_MANAGED_ROLES = {"Administrador", "Directivo"}
+STAFF_ROLES = {"Administrador"}
 username_validator = UnicodeUsernameValidator()
 
 
@@ -169,9 +171,25 @@ class UserAccountSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        request_user = self._request_user()
+        roles = attrs.get("roles")
         if self.instance is None and not attrs.get("password"):
             raise serializers.ValidationError({"password": "La contrasena es obligatoria al crear un usuario."})
+        if self.instance is not None and self.instance.is_superuser and not self._request_is_superuser():
+            raise serializers.ValidationError("Solo el owner puede modificar una cuenta superusuario.")
+        if roles is not None and ADMIN_MANAGED_ROLES.intersection(roles) and not self._request_is_superuser():
+            raise serializers.ValidationError({"roles": "Solo el owner puede asignar roles Administrador o Directivo."})
+        if request_user and self.instance is not None and request_user.pk == self.instance.pk and attrs.get("is_active") is False:
+            raise serializers.ValidationError({"is_active": "No puedes desactivar tu propia cuenta."})
         return attrs
+
+    def _request_user(self):
+        request = self.context.get("request")
+        return getattr(request, "user", None)
+
+    def _request_is_superuser(self):
+        user = self._request_user()
+        return bool(user and user.is_authenticated and user.is_superuser)
 
     @transaction.atomic
     def create(self, validated_data):
@@ -215,7 +233,7 @@ class UserAccountSerializer(serializers.ModelSerializer):
         user.groups.remove(*Group.objects.filter(name__in=ROLE_GROUPS))
         if role_groups:
             user.groups.add(*role_groups)
-        user.is_staff = user.is_superuser or any(role in {"Administrador", "Directivo"} for role in roles)
+        user.is_staff = user.is_superuser or any(role in STAFF_ROLES for role in roles)
         user.save(update_fields=["is_staff"])
 
 
@@ -339,7 +357,7 @@ class PersonaSerializerMixin(serializers.ModelSerializer):
             first_name=user_data["first_name"],
             last_name=user_data["last_name"],
             is_active=True if user_data["is_active"] is None else user_data["is_active"],
-            is_staff=self.role_name in {"Administrador", "Directivo"},
+            is_staff=self.role_name in STAFF_ROLES,
         )
         user.set_password(user_data["password"])
         user.save()
