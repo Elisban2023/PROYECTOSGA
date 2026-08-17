@@ -15,5 +15,5 @@ from .usuarios import (
     UsuarioViewSet,
     VinculoApoderadoViewSet,
 )
-from .seguimiento import IncidenciaAcademicaViewSet, ObservacionAcademicaViewSet
+from .seguimiento import IncidenciaAcademicaViewSet, ObservacionAcademicaViewSet, RecomendacionIAViewSet
 from .notificaciones import NotificacionViewSet

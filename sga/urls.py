@@ -14,6 +14,7 @@ from .api import (
     NotificacionViewSet,
     ObservacionAcademicaViewSet,
     PeriodoAcademicoViewSet,
+    RecomendacionIAViewSet,
     SeccionViewSet,
     UsuarioViewSet,
     VinculoApoderadoViewSet,
@@ -31,6 +32,7 @@ router.register("matriculas", MatriculaViewSet, basename="matricula")
 router.register("observaciones", ObservacionAcademicaViewSet, basename="observacion")
 router.register("incidencias", IncidenciaAcademicaViewSet, basename="incidencia")
 router.register("notificaciones", NotificacionViewSet, basename="notificacion")
+router.register("recomendaciones-ia", RecomendacionIAViewSet, basename="recomendacion-ia")
 router.register("anios-academicos", AnioAcademicoViewSet, basename="anio-academico")
 router.register("periodos", PeriodoAcademicoViewSet, basename="periodo-academico")
 router.register("grados", GradoViewSet, basename="grado")

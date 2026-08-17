@@ -1027,6 +1027,7 @@ class RecomendacionIA(models.Model):
         null=True,
         blank=True,
     )
+    activo = models.BooleanField(default=True)
 
     def registrar_revision(
         self,

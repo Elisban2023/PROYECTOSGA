@@ -1,7 +1,13 @@
 ﻿from django.utils import timezone
 from rest_framework import serializers
 
-from sga.models import EstadoIncidencia, IncidenciaAcademica, ObservacionAcademica
+from sga.models import (
+    EstadoIncidencia,
+    EstadoRevisionIA,
+    IncidenciaAcademica,
+    ObservacionAcademica,
+    RecomendacionIA,
+)
 
 
 class ObservacionAcademicaSerializer(serializers.ModelSerializer):
@@ -131,3 +137,104 @@ class IncidenciaAcademicaSerializer(serializers.ModelSerializer):
         if validated_data.get("estado") != EstadoIncidencia.CERRADA:
             validated_data["fecha_cierre"] = None
         return super().update(instance, validated_data)
+
+
+
+class RecomendacionIASerializer(serializers.ModelSerializer):
+    estudiante_label = serializers.StringRelatedField(source="matricula.estudiante", read_only=True)
+    estudiante_codigo = serializers.CharField(source="matricula.estudiante.codigo_estudiante", read_only=True)
+    seccion_label = serializers.StringRelatedField(source="matricula.seccion", read_only=True)
+    periodo_academico_label = serializers.StringRelatedField(source="periodo_academico", read_only=True)
+    docente_revisor_label = serializers.StringRelatedField(source="revisado_por_docente", read_only=True)
+
+    class Meta:
+        model = RecomendacionIA
+        fields = (
+            "id",
+            "matricula",
+            "estudiante_label",
+            "estudiante_codigo",
+            "seccion_label",
+            "periodo_academico",
+            "periodo_academico_label",
+            "revisado_por_docente",
+            "docente_revisor_label",
+            "resumen_contexto",
+            "texto_generado",
+            "texto_revisado",
+            "estado_revision",
+            "fecha_generacion",
+            "fecha_revision",
+            "activo",
+        )
+        read_only_fields = ("fecha_revision",)
+
+    def validate_resumen_contexto(self, value):
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError("El resumen de contexto debe tener al menos 10 caracteres.")
+        return value
+
+    def validate_texto_generado(self, value):
+        value = value.strip()
+        if len(value) < 10:
+            raise serializers.ValidationError("El texto generado debe tener al menos 10 caracteres.")
+        return value
+
+    def validate_texto_revisado(self, value):
+        if value is None:
+            return value
+        value = value.strip()
+        if value and len(value) < 10:
+            raise serializers.ValidationError("El texto revisado debe tener al menos 10 caracteres.")
+        return value
+
+    def validate_fecha_generacion(self, value):
+        if value > timezone.now():
+            raise serializers.ValidationError("La fecha de generacion no puede ser futura.")
+        return value
+
+    def validate(self, attrs):
+        matricula = attrs.get("matricula", getattr(self.instance, "matricula", None))
+        periodo = attrs.get("periodo_academico", getattr(self.instance, "periodo_academico", None))
+        docente = attrs.get("revisado_por_docente", getattr(self.instance, "revisado_por_docente", None))
+        estado = attrs.get("estado_revision", getattr(self.instance, "estado_revision", EstadoRevisionIA.PENDIENTE))
+        texto_revisado = attrs.get("texto_revisado", getattr(self.instance, "texto_revisado", None))
+
+        if matricula is not None and matricula.estado != "ACTIVA":
+            raise serializers.ValidationError({"matricula": "La matricula seleccionada no esta activa."})
+        if periodo is not None:
+            if not periodo.activo:
+                raise serializers.ValidationError({"periodo_academico": "El periodo academico seleccionado esta inactivo."})
+            if matricula is not None and periodo.anio_academico_id != matricula.anio_academico_id:
+                raise serializers.ValidationError({"periodo_academico": "El periodo no pertenece al anio academico de la matricula."})
+        if docente is not None and not docente.perfil.user.is_active:
+            raise serializers.ValidationError({"revisado_por_docente": "El docente revisor esta inactivo."})
+        if estado in {EstadoRevisionIA.APROBADA, EstadoRevisionIA.RECHAZADA, EstadoRevisionIA.EDITADA} and docente is None:
+            raise serializers.ValidationError({"revisado_por_docente": "Debe indicar el docente que revisa la recomendacion."})
+        if estado == EstadoRevisionIA.EDITADA and not texto_revisado:
+            raise serializers.ValidationError({"texto_revisado": "Debe registrar el texto revisado cuando el estado es EDITADA."})
+        return attrs
+
+    def create(self, validated_data):
+        if validated_data.get("estado_revision") in {
+            EstadoRevisionIA.APROBADA,
+            EstadoRevisionIA.RECHAZADA,
+            EstadoRevisionIA.EDITADA,
+        }:
+            validated_data["fecha_revision"] = timezone.now()
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        estado = validated_data.get("estado_revision", instance.estado_revision)
+        if estado in {EstadoRevisionIA.APROBADA, EstadoRevisionIA.RECHAZADA, EstadoRevisionIA.EDITADA}:
+            if instance.fecha_revision is None:
+                validated_data["fecha_revision"] = timezone.now()
+        else:
+            validated_data["fecha_revision"] = None
+        return super().update(instance, validated_data)
+
+
+class RecomendacionIARevisionSerializer(serializers.Serializer):
+    docente = serializers.IntegerField(required=True)
+    texto_revisado = serializers.CharField(required=False, allow_blank=True)
