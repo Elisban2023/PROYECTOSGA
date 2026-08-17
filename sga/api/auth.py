@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from sga.serializers import UserMeSerializer
+from sga.services.menu import build_menu
 
 
 @extend_schema(responses=UserMeSerializer)
@@ -18,45 +19,4 @@ def me(request):
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
 def menu(request):
-    user = request.user
-    is_admin = user.is_staff or user.is_superuser or user.groups.filter(name__in=["Administrador", "Directivo"]).exists()
-
-    if is_admin:
-        items = [
-            {"label": "Dashboard", "path": "/dashboard"},
-            {
-                "label": "Gestion academica",
-                "children": [
-                    {"label": "Anios academicos", "path": "/gestion-academica/anios-academicos"},
-                    {"label": "Periodos", "path": "/gestion-academica/periodos"},
-                    {"label": "Grados y secciones", "path": "/gestion-academica/grados-secciones"},
-                    {"label": "Cursos", "path": "/gestion-academica/cursos"},
-                    {"label": "Asignacion de cursos", "path": "/gestion-academica/asignaciones-cursos"},
-                ],
-            },
-            {
-                "label": "Usuarios",
-                "children": [
-                    {"label": "Estudiantes", "path": "/usuarios/estudiantes"},
-                    {"label": "Docentes", "path": "/usuarios/docentes"},
-                    {"label": "Apoderados", "path": "/usuarios/apoderados"},
-                    {"label": "Usuarios y roles", "path": "/usuarios/roles"},
-                ],
-            },
-            {"label": "Matriculas", "path": "/matriculas"},
-            {
-                "label": "Seguimiento",
-                "children": [
-                    {"label": "Incidencias", "path": "/seguimiento/incidencias"},
-                    {"label": "Observaciones", "path": "/seguimiento/observaciones"},
-                    {"label": "Recomendaciones IA", "path": "/seguimiento/recomendaciones-ia"},
-                ],
-            },
-            {"label": "Reportes", "path": "/reportes"},
-            {"label": "Auditoria", "path": "/auditoria"},
-            {"label": "Configuracion", "path": "/configuracion"},
-        ]
-    else:
-        items = [{"label": "Dashboard", "path": "/dashboard"}]
-
-    return Response({"items": items})
+    return Response(build_menu(request.user))

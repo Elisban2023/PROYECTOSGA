@@ -18,6 +18,7 @@ from .api import (
     SeccionViewSet,
     UsuarioViewSet,
     VinculoApoderadoViewSet,
+    dashboard,
     me,
     menu,
 )
@@ -43,5 +44,6 @@ router.register("asignaciones-cursos", AsignacionCursoViewSet, basename="asignac
 urlpatterns = [
     path("auth/me/", me, name="api-auth-me"),
     path("auth/menu/", menu, name="api-auth-menu"),
+    path("dashboard/", dashboard, name="api-dashboard"),
     path("", include(router.urls)),
 ]

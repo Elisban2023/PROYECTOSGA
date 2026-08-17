@@ -1,10 +1,11 @@
 from rest_framework import filters, status, viewsets
-from rest_framework.permissions import IsAdminUser
 from rest_framework.response import Response
+
+from sga.permissions import IsAdminOrDirectivo
 
 
 class AdminCatalogViewSet(viewsets.ModelViewSet):
-    permission_classes = (IsAdminUser,)
+    permission_classes = (IsAdminOrDirectivo,)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     logical_delete_field = None
     logical_delete_value = None

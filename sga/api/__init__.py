@@ -7,6 +7,7 @@ from .academico import (
     SeccionViewSet,
 )
 from .auth import me, menu
+from .dashboard import dashboard
 from .matriculas import MatriculaViewSet
 from .usuarios import (
     ApoderadoViewSet,
