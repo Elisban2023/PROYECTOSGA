@@ -27,7 +27,6 @@ def get_asignaciones_docente(user):
         )
         .order_by(
             "-anio_academico__anio",
-            "seccion__grado__nivel",
             "seccion__grado__nombre",
             "seccion__nombre",
             "curso__nombre",

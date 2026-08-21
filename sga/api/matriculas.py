@@ -21,7 +21,6 @@ class MatriculaViewSet(AdminCatalogViewSet):
         "estudiante__perfil__user__last_name",
         "seccion__nombre",
         "seccion__grado__nombre",
-        "seccion__grado__nivel",
         "anio_academico__anio",
         "estado",
     )

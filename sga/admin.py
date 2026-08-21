@@ -131,16 +131,16 @@ class PeriodoAcademicoAdmin(admin.ModelAdmin):
 
 @admin.register(Grado)
 class GradoAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "nivel", "estado")
-    list_filter = ("nivel", "estado")
-    search_fields = ("nombre", "nivel")
+    list_display = ("nombre", "estado")
+    list_filter = ("estado",)
+    search_fields = ("nombre",)
 
 
 @admin.register(Seccion)
 class SeccionAdmin(admin.ModelAdmin):
     list_display = ("nombre", "grado", "estado")
-    list_filter = ("grado__nivel", "grado", "estado")
-    search_fields = ("nombre", "grado__nombre", "grado__nivel")
+    list_filter = ("grado", "estado")
+    search_fields = ("nombre", "grado__nombre")
     autocomplete_fields = ("grado",)
 
 

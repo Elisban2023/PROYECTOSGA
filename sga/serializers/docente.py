@@ -16,10 +16,6 @@ class DocenteCursoSerializer(serializers.ModelSerializer):
         source="seccion.grado.nombre",
         read_only=True,
     )
-    grado_nivel = serializers.CharField(
-        source="seccion.grado.nivel",
-        read_only=True,
-    )
     seccion_id = serializers.IntegerField(read_only=True)
     seccion_nombre = serializers.CharField(source="seccion.nombre", read_only=True)
     anio_academico_id = serializers.IntegerField(read_only=True)
@@ -39,7 +35,6 @@ class DocenteCursoSerializer(serializers.ModelSerializer):
             "curso_descripcion",
             "grado_id",
             "grado_nombre",
-            "grado_nivel",
             "seccion_id",
             "seccion_nombre",
             "anio_academico_id",

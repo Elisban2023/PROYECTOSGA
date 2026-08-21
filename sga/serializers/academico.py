@@ -51,7 +51,6 @@ class GradoSerializer(serializers.ModelSerializer):
         fields = (
             "id",
             "nombre",
-            "nivel",
             "estado",
             "estado_label",
         )

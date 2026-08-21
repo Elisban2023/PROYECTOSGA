@@ -60,19 +60,19 @@ class PeriodoAcademicoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
 class GradoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
     logical_delete_field = "estado"
     logical_delete_value = EstadoRegistro.INACTIVO
-    queryset = Grado.objects.all().order_by("nivel", "nombre")
+    queryset = Grado.objects.all().order_by("nombre")
     serializer_class = GradoSerializer
-    search_fields = ("nombre", "nivel")
-    ordering_fields = ("nombre", "nivel", "estado")
+    search_fields = ("nombre",)
+    ordering_fields = ("nombre", "estado")
 
 
 class SeccionViewSet(EstadoFilterMixin, AdminCatalogViewSet):
     logical_delete_field = "estado"
     logical_delete_value = EstadoRegistro.INACTIVO
-    queryset = Seccion.objects.select_related("grado").order_by("grado__nivel", "grado__nombre", "nombre")
+    queryset = Seccion.objects.select_related("grado").order_by("grado__nombre", "nombre")
     serializer_class = SeccionSerializer
-    search_fields = ("nombre", "grado__nombre", "grado__nivel")
-    ordering_fields = ("nombre", "grado__nombre", "grado__nivel", "estado")
+    search_fields = ("nombre", "grado__nombre")
+    ordering_fields = ("nombre", "grado__nombre", "estado")
 
 
 class CursoViewSet(EstadoFilterMixin, AdminCatalogViewSet):

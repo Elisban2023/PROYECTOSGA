@@ -376,20 +376,19 @@ class PeriodoAcademico(models.Model):
 
 class Grado(models.Model):
     nombre = models.CharField(max_length=100)
-    nivel = models.CharField(max_length=100)
     estado = models.PositiveSmallIntegerField(
         choices=EstadoRegistro.choices,
         default=EstadoRegistro.ACTIVO,
     )
 
     def actualizar(self, **datos):
-        for campo in ("nombre", "nivel"):
+        for campo in ("nombre",):
             if campo in datos:
                 setattr(self, campo, datos[campo])
         self.save()
 
     def __str__(self):
-        return f"{self.nombre} - {self.nivel}"
+        return self.nombre
 
 
 class Seccion(models.Model):
