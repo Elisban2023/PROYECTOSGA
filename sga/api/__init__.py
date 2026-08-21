@@ -6,6 +6,11 @@ from .academico import (
     PeriodoAcademicoViewSet,
     SeccionViewSet,
 )
+from .evaluacion import (
+    CapacidadViewSet,
+    CompetenciaViewSet,
+    CriterioCalificacionViewSet,
+)
 from .auth import me, menu
 from .dashboard import dashboard
 from .matriculas import MatriculaViewSet

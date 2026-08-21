@@ -6,6 +6,11 @@ from .academico import (
     PeriodoAcademicoSerializer,
     SeccionSerializer,
 )
+from .evaluacion import (
+    CapacidadSerializer,
+    CompetenciaSerializer,
+    CriterioCalificacionSerializer,
+)
 from .matriculas import MatriculaSerializer
 from .usuarios import (
     ApoderadoSerializer,

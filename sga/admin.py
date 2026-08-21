@@ -153,16 +153,16 @@ class CursoAdmin(admin.ModelAdmin):
 
 @admin.register(Competencia)
 class CompetenciaAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "curso")
-    list_filter = ("curso",)
+    list_display = ("nombre", "curso", "estado")
+    list_filter = ("curso", "estado")
     search_fields = ("nombre", "curso__nombre")
     autocomplete_fields = ("curso",)
 
 
 @admin.register(Capacidad)
 class CapacidadAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "competencia", "curso")
-    list_filter = ("competencia__curso",)
+    list_display = ("nombre", "competencia", "curso", "estado")
+    list_filter = ("competencia__curso", "estado")
     search_fields = ("nombre", "competencia__nombre", "competencia__curso__nombre")
     autocomplete_fields = ("competencia",)
 
@@ -173,8 +173,8 @@ class CapacidadAdmin(admin.ModelAdmin):
 
 @admin.register(CriterioCalificacion)
 class CriterioCalificacionAdmin(admin.ModelAdmin):
-    list_display = ("nombre", "capacidad", "competencia", "curso")
-    list_filter = ("capacidad__competencia__curso",)
+    list_display = ("nombre", "capacidad", "competencia", "curso", "estado")
+    list_filter = ("capacidad__competencia__curso", "estado")
     search_fields = (
         "nombre",
         "descripcion",

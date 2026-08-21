@@ -457,6 +457,10 @@ class Competencia(models.Model):
         related_name="competencias",
     )
     nombre = models.CharField(max_length=255)
+    estado = models.PositiveSmallIntegerField(
+        choices=EstadoRegistro.choices,
+        default=EstadoRegistro.ACTIVO,
+    )
 
     def actualizar(self, **datos):
         if "nombre" in datos:
@@ -468,6 +472,14 @@ class Competencia(models.Model):
     def __str__(self):
         return self.nombre
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["curso", "nombre"],
+                name="unique_competencia_por_curso",
+            )
+        ]
+
 
 class Capacidad(models.Model):
     competencia = models.ForeignKey(
@@ -476,6 +488,10 @@ class Capacidad(models.Model):
         related_name="capacidades",
     )
     nombre = models.CharField(max_length=255)
+    estado = models.PositiveSmallIntegerField(
+        choices=EstadoRegistro.choices,
+        default=EstadoRegistro.ACTIVO,
+    )
 
     def actualizar(self, **datos):
         if "nombre" in datos:
@@ -486,6 +502,14 @@ class Capacidad(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["competencia", "nombre"],
+                name="unique_capacidad_por_competencia",
+            )
+        ]
 
 
 class CriterioCalificacion(models.Model):
@@ -500,6 +524,10 @@ class CriterioCalificacion(models.Model):
         null=True,
         blank=True,
     )
+    estado = models.PositiveSmallIntegerField(
+        choices=EstadoRegistro.choices,
+        default=EstadoRegistro.ACTIVO,
+    )
 
     def actualizar(self, **datos):
         for campo in ("nombre", "descripcion"):
@@ -511,6 +539,14 @@ class CriterioCalificacion(models.Model):
 
     def __str__(self):
         return self.nombre
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["capacidad", "nombre"],
+                name="unique_criterio_por_capacidad",
+            )
+        ]
 
 
 # ============================================================

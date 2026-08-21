@@ -6,6 +6,9 @@ from .api import (
     ApoderadoViewSet,
     AsignacionCursoViewSet,
     ConfiguracionInstitucionalViewSet,
+    CapacidadViewSet,
+    CompetenciaViewSet,
+    CriterioCalificacionViewSet,
     CursoViewSet,
     DocenteViewSet,
     EstudianteViewSet,
@@ -46,6 +49,13 @@ router.register("periodos", PeriodoAcademicoViewSet, basename="periodo-academico
 router.register("grados", GradoViewSet, basename="grado")
 router.register("secciones", SeccionViewSet, basename="seccion")
 router.register("cursos", CursoViewSet, basename="curso")
+router.register("competencias", CompetenciaViewSet, basename="competencia")
+router.register("capacidades", CapacidadViewSet, basename="capacidad")
+router.register(
+    "criterios-calificacion",
+    CriterioCalificacionViewSet,
+    basename="criterio-calificacion",
+)
 router.register("asignaciones-cursos", AsignacionCursoViewSet, basename="asignacion-curso")
 router.register("auditoria", RegistroAuditoriaViewSet, basename="auditoria")
 router.register("configuracion", ConfiguracionInstitucionalViewSet, basename="configuracion")
