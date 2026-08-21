@@ -52,6 +52,7 @@ from .calificaciones_apoderado import calificaciones_apoderado
 from .seguimiento_apoderado import seguimiento_apoderado
 from .notificaciones_apoderado import marcar_notificacion_leida, mis_notificaciones
 from .carga_estudiantes import carga_masiva_estudiantes, plantilla_carga_estudiantes
+from .carga_apoderados import carga_masiva_apoderados, plantilla_carga_apoderados
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,
