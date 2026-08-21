@@ -48,6 +48,8 @@ from .api import (
     registrar_observacion,
     registrar_participacion,
     eliminar_observacion,
+    detalle_seguimiento_docente,
+    seguimiento_docente,
 )
 
 router = DefaultRouter()
@@ -161,6 +163,16 @@ urlpatterns = [
         "docente/observaciones/<int:observacion_id>/eliminar/",
         eliminar_observacion,
         name="api-docente-eliminar-observacion",
+    ),
+    path(
+        "docente/seguimiento/",
+        seguimiento_docente,
+        name="api-docente-seguimiento",
+    ),
+    path(
+        "docente/seguimiento/<int:matricula_id>/",
+        detalle_seguimiento_docente,
+        name="api-docente-detalle-seguimiento",
     ),
     path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
     path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),
