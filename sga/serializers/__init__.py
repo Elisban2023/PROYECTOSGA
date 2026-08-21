@@ -27,6 +27,11 @@ from .participaciones import (
     ParticipacionDocenteSerializer,
     RegistrarParticipacionSerializer,
 )
+from .observaciones_docente import (
+    ActualizarObservacionDocenteSerializer,
+    ObservacionDocenteSerializer,
+    RegistrarObservacionDocenteSerializer,
+)
 from .matriculas import MatriculaSerializer
 from .usuarios import (
     ApoderadoSerializer,

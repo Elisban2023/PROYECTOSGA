@@ -27,6 +27,12 @@ from .participaciones import (
     participaciones_docente,
     registrar_participacion,
 )
+from .observaciones_docente import (
+    actualizar_observacion,
+    eliminar_observacion,
+    observaciones_docente,
+    registrar_observacion,
+)
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,
