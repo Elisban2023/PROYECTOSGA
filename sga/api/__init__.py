@@ -50,6 +50,7 @@ from .apoderado import mis_estudiantes_apoderado
 from .asistencia_apoderado import asistencia_apoderado
 from .calificaciones_apoderado import calificaciones_apoderado
 from .seguimiento_apoderado import seguimiento_apoderado
+from .notificaciones_apoderado import marcar_notificacion_leida, mis_notificaciones
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,
