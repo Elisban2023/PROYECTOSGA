@@ -45,6 +45,7 @@ from .estudiante import mis_cursos_estudiante
 from .asistencia_estudiante import mi_asistencia
 from .calificaciones_estudiante import mis_calificaciones
 from .participaciones_estudiante import mi_participacion
+from .seguimiento_estudiante import mi_seguimiento
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,
