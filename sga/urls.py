@@ -52,6 +52,10 @@ from .api import (
     seguimiento_docente,
     generar_recomendacion,
     recomendaciones_docente,
+    reporte_docente_asistencias,
+    reporte_docente_calificaciones,
+    reporte_docente_resumen,
+    reporte_docente_seguimiento,
 )
 
 router = DefaultRouter()
@@ -178,6 +182,10 @@ urlpatterns = [
     ),
     path("docente/recomendaciones-ia/", recomendaciones_docente, name="api-docente-recomendaciones"),
     path("docente/recomendaciones-ia/generar/", generar_recomendacion, name="api-docente-generar-recomendacion"),
+    path("docente/reportes/resumen/", reporte_docente_resumen, name="api-docente-reporte-resumen"),
+    path("docente/reportes/asistencias/", reporte_docente_asistencias, name="api-docente-reporte-asistencias"),
+    path("docente/reportes/calificaciones/", reporte_docente_calificaciones, name="api-docente-reporte-calificaciones"),
+    path("docente/reportes/seguimiento/", reporte_docente_seguimiento, name="api-docente-reporte-seguimiento"),
     path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
     path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),
     path("reportes/incidencias/", reporte_incidencias, name="api-reporte-incidencias"),

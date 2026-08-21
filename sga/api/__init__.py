@@ -35,6 +35,12 @@ from .observaciones_docente import (
 )
 from .seguimiento_docente import detalle_seguimiento_docente, seguimiento_docente
 from .recomendaciones_docente import generar_recomendacion, recomendaciones_docente
+from .reportes_docente import (
+    reporte_docente_asistencias,
+    reporte_docente_calificaciones,
+    reporte_docente_resumen,
+    reporte_docente_seguimiento,
+)
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,
