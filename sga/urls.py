@@ -24,6 +24,8 @@ from .api import (
     UsuarioViewSet,
     VinculoApoderadoViewSet,
     dashboard,
+    actualizar_asistencia,
+    asistencias_docente,
     estudiantes_mi_curso,
     me,
     menu,
@@ -33,6 +35,7 @@ from .api import (
     reporte_matriculas,
     reporte_notificaciones,
     reporte_resumen,
+    registrar_asistencias,
 )
 
 router = DefaultRouter()
@@ -71,6 +74,21 @@ urlpatterns = [
         "docente/mis-cursos/<int:asignacion_id>/estudiantes/",
         estudiantes_mi_curso,
         name="api-docente-estudiantes-mi-curso",
+    ),
+    path(
+        "docente/asistencias/",
+        asistencias_docente,
+        name="api-docente-asistencias",
+    ),
+    path(
+        "docente/asistencias/registrar/",
+        registrar_asistencias,
+        name="api-docente-registrar-asistencias",
+    ),
+    path(
+        "docente/asistencias/<int:asistencia_id>/",
+        actualizar_asistencia,
+        name="api-docente-actualizar-asistencia",
     ),
     path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
     path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),

@@ -12,6 +12,11 @@ from .evaluacion import (
     CriterioCalificacionSerializer,
 )
 from .docente import DocenteCursoSerializer, DocenteEstudianteCursoSerializer
+from .asistencia import (
+    ActualizarAsistenciaSerializer,
+    AsistenciaDocenteSerializer,
+    RegistrarAsistenciasSerializer,
+)
 from .matriculas import MatriculaSerializer
 from .usuarios import (
     ApoderadoSerializer,

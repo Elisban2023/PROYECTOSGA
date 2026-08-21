@@ -12,6 +12,11 @@ from .evaluacion import (
     CriterioCalificacionViewSet,
 )
 from .auth import me, menu
+from .asistencia import (
+    actualizar_asistencia,
+    asistencias_docente,
+    registrar_asistencias,
+)
 from .docente import estudiantes_mi_curso, mis_cursos
 from .dashboard import dashboard
 from .matriculas import MatriculaViewSet
