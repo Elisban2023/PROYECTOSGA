@@ -49,6 +49,7 @@ from .seguimiento_estudiante import mi_seguimiento
 from .apoderado import mis_estudiantes_apoderado
 from .asistencia_apoderado import asistencia_apoderado
 from .calificaciones_apoderado import calificaciones_apoderado
+from .seguimiento_apoderado import seguimiento_apoderado
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,
