@@ -1,4 +1,16 @@
-from sga.models import AnioAcademico, AsignacionCurso, Curso, Grado, PeriodoAcademico, Seccion
+from rest_framework.exceptions import ValidationError
+
+from sga.models import (
+    AnioAcademico,
+    AsignacionCurso,
+    Curso,
+    EstadoAcademico,
+    EstadoGeneral,
+    EstadoRegistro,
+    Grado,
+    PeriodoAcademico,
+    Seccion,
+)
 from sga.serializers import (
     AnioAcademicoSerializer,
     AsignacionCursoSerializer,
@@ -11,57 +23,70 @@ from sga.serializers import (
 from .base import AdminCatalogViewSet
 
 
-class AnioAcademicoViewSet(AdminCatalogViewSet):
-    logical_delete_field = "activo"
-    logical_delete_value = False
+class EstadoFilterMixin:
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        estado = self.request.query_params.get("estado")
+        if estado is None:
+            return queryset
+        try:
+            estado = int(estado)
+        except (TypeError, ValueError):
+            raise ValidationError({"estado": "El estado debe ser un numero entero."})
+        return queryset.filter(estado=estado)
+
+
+class AnioAcademicoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
+    logical_delete_field = "estado"
+    logical_delete_value = EstadoAcademico.INACTIVO
     queryset = AnioAcademico.objects.all().order_by("-anio")
     serializer_class = AnioAcademicoSerializer
-    search_fields = ("anio", "estado")
-    ordering_fields = ("anio", "fecha_inicio", "fecha_fin", "estado", "activo")
+    search_fields = ("anio",)
+    ordering_fields = ("anio", "fecha_inicio", "fecha_fin", "estado")
 
 
-class PeriodoAcademicoViewSet(AdminCatalogViewSet):
-    logical_delete_field = "activo"
-    logical_delete_value = False
+class PeriodoAcademicoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
+    logical_delete_field = "estado"
+    logical_delete_value = EstadoAcademico.INACTIVO
     queryset = PeriodoAcademico.objects.select_related("anio_academico").order_by(
         "-anio_academico__anio",
         "fecha_inicio",
     )
     serializer_class = PeriodoAcademicoSerializer
-    search_fields = ("nombre", "estado", "anio_academico__anio")
-    ordering_fields = ("nombre", "fecha_inicio", "fecha_fin", "estado", "activo")
+    search_fields = ("nombre", "anio_academico__anio")
+    ordering_fields = ("nombre", "fecha_inicio", "fecha_fin", "estado")
 
 
-class GradoViewSet(AdminCatalogViewSet):
-    logical_delete_field = "activo"
-    logical_delete_value = False
+class GradoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
+    logical_delete_field = "estado"
+    logical_delete_value = EstadoRegistro.INACTIVO
     queryset = Grado.objects.all().order_by("nivel", "nombre")
     serializer_class = GradoSerializer
     search_fields = ("nombre", "nivel")
-    ordering_fields = ("nombre", "nivel", "activo")
+    ordering_fields = ("nombre", "nivel", "estado")
 
 
-class SeccionViewSet(AdminCatalogViewSet):
-    logical_delete_field = "activo"
-    logical_delete_value = False
+class SeccionViewSet(EstadoFilterMixin, AdminCatalogViewSet):
+    logical_delete_field = "estado"
+    logical_delete_value = EstadoRegistro.INACTIVO
     queryset = Seccion.objects.select_related("grado").order_by("grado__nivel", "grado__nombre", "nombre")
     serializer_class = SeccionSerializer
     search_fields = ("nombre", "grado__nombre", "grado__nivel")
-    ordering_fields = ("nombre", "grado__nombre", "grado__nivel", "activo")
+    ordering_fields = ("nombre", "grado__nombre", "grado__nivel", "estado")
 
 
-class CursoViewSet(AdminCatalogViewSet):
+class CursoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
     logical_delete_field = "estado"
-    logical_delete_value = False
+    logical_delete_value = EstadoRegistro.INACTIVO
     queryset = Curso.objects.all().order_by("nombre")
     serializer_class = CursoSerializer
     search_fields = ("nombre", "descripcion")
     ordering_fields = ("nombre", "estado")
 
 
-class AsignacionCursoViewSet(AdminCatalogViewSet):
+class AsignacionCursoViewSet(EstadoFilterMixin, AdminCatalogViewSet):
     logical_delete_field = "estado"
-    logical_delete_value = "INACTIVO"
+    logical_delete_value = EstadoGeneral.INACTIVO
     queryset = AsignacionCurso.objects.select_related(
         "curso",
         "docente__perfil__user",
@@ -75,6 +100,5 @@ class AsignacionCursoViewSet(AdminCatalogViewSet):
         "docente__perfil__user__last_name",
         "seccion__nombre",
         "seccion__grado__nombre",
-        "estado",
     )
     ordering_fields = ("estado", "curso__nombre", "seccion__nombre", "anio_academico__anio")

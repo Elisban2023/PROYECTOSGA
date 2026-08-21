@@ -7,6 +7,7 @@ from sga.models import (
     Calificacion,
     Docente,
     EstadoEnvio,
+    EstadoGeneral,
     EstadoIncidencia,
     EstadoMatricula,
     Estudiante,
@@ -61,7 +62,10 @@ def _docente_dashboard(user):
     if docente_id is None:
         return {"role": ROLE_DOCENTE, "summary": {}, "items": []}
 
-    asignaciones = AsignacionCurso.objects.filter(docente_id=docente_id, estado="ACTIVO")
+    asignaciones = AsignacionCurso.objects.filter(
+        docente_id=docente_id,
+        estado=EstadoGeneral.ACTIVO,
+    )
     seccion_ids = asignaciones.values_list("seccion_id", flat=True)
     anio_ids = asignaciones.values_list("anio_academico_id", flat=True)
     matriculas = Matricula.objects.filter(
@@ -97,7 +101,7 @@ def _estudiante_dashboard(user):
     matriculas = Matricula.objects.filter(estudiante_id=estudiante_id)
     matricula_ids = matriculas.values_list("id", flat=True)
     asignaciones = AsignacionCurso.objects.filter(
-        estado="ACTIVO",
+        estado=EstadoGeneral.ACTIVO,
         seccion_id__in=matriculas.values_list("seccion_id", flat=True),
         anio_academico_id__in=matriculas.values_list("anio_academico_id", flat=True),
     )

@@ -2,6 +2,8 @@
 from rest_framework import serializers
 
 from sga.models import (
+    EstadoAcademico,
+    EstadoGeneral,
     EstadoIncidencia,
     EstadoRevisionIA,
     IncidenciaAcademica,
@@ -62,7 +64,7 @@ class ObservacionAcademicaSerializer(serializers.ModelSerializer):
         if docente is not None and not docente.perfil.user.is_active:
             raise serializers.ValidationError({"docente": "El docente seleccionado esta inactivo."})
         if asignacion is not None:
-            if asignacion.estado != "ACTIVO":
+            if asignacion.estado != EstadoGeneral.ACTIVO:
                 raise serializers.ValidationError({"asignacion_curso": "La asignacion de curso no esta activa."})
             if matricula is not None and asignacion.seccion_id != matricula.seccion_id:
                 raise serializers.ValidationError({"asignacion_curso": "La asignacion no corresponde a la seccion de la matricula."})
@@ -204,7 +206,7 @@ class RecomendacionIASerializer(serializers.ModelSerializer):
         if matricula is not None and matricula.estado != "ACTIVA":
             raise serializers.ValidationError({"matricula": "La matricula seleccionada no esta activa."})
         if periodo is not None:
-            if not periodo.activo:
+            if periodo.estado == EstadoAcademico.INACTIVO:
                 raise serializers.ValidationError({"periodo_academico": "El periodo academico seleccionado esta inactivo."})
             if matricula is not None and periodo.anio_academico_id != matricula.anio_academico_id:
                 raise serializers.ValidationError({"periodo_academico": "El periodo no pertenece al anio academico de la matricula."})

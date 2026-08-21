@@ -1,7 +1,7 @@
 from django.utils import timezone
 from rest_framework import serializers
 
-from sga.models import Matricula
+from sga.models import EstadoAcademico, EstadoRegistro, Matricula
 
 
 class MatriculaSerializer(serializers.ModelSerializer):
@@ -43,11 +43,11 @@ class MatriculaSerializer(serializers.ModelSerializer):
 
         if estudiante is not None and not estudiante.perfil.user.is_active:
             raise serializers.ValidationError({"estudiante": "El estudiante seleccionado esta inactivo."})
-        if seccion is not None and not seccion.activo:
+        if seccion is not None and seccion.estado == EstadoRegistro.INACTIVO:
             raise serializers.ValidationError({"seccion": "La seccion seleccionada esta inactiva."})
-        if seccion is not None and not seccion.grado.activo:
+        if seccion is not None and seccion.grado.estado == EstadoRegistro.INACTIVO:
             raise serializers.ValidationError({"seccion": "El grado de la seccion seleccionada esta inactivo."})
-        if anio_academico is not None and not anio_academico.activo:
+        if anio_academico is not None and anio_academico.estado == EstadoAcademico.INACTIVO:
             raise serializers.ValidationError({"anio_academico": "El anio academico seleccionado esta inactivo."})
         if fecha_matricula and anio_academico and not (anio_academico.fecha_inicio <= fecha_matricula <= anio_academico.fecha_fin):
             raise serializers.ValidationError({"fecha_matricula": "La fecha de matricula debe estar dentro del anio academico."})

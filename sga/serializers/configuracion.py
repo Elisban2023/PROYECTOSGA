@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from sga.models import AnioAcademico, ConfiguracionInstitucional
+from sga.models import AnioAcademico, ConfiguracionInstitucional, EstadoAcademico
 
 
 class ConfiguracionInstitucionalSerializer(serializers.ModelSerializer):
@@ -54,7 +54,7 @@ class ConfiguracionInstitucionalSerializer(serializers.ModelSerializer):
         return value
 
     def validate_anio_academico_activo(self, value):
-        if value and not value.activo:
+        if value and value.estado != EstadoAcademico.ACTIVO:
             raise serializers.ValidationError("El anio academico activo seleccionado esta desactivado.")
         return value
 
@@ -62,6 +62,9 @@ class ConfiguracionInstitucionalSerializer(serializers.ModelSerializer):
         if self.instance is None and ConfiguracionInstitucional.objects.exists():
             raise serializers.ValidationError("Ya existe una configuracion institucional. Actualice la existente.")
         anio = attrs.get("anio_academico_activo", getattr(self.instance, "anio_academico_activo", None))
-        if anio is not None and not AnioAcademico.objects.filter(pk=anio.pk, activo=True).exists():
+        if anio is not None and not AnioAcademico.objects.filter(
+            pk=anio.pk,
+            estado=EstadoAcademico.ACTIVO,
+        ).exists():
             raise serializers.ValidationError({"anio_academico_activo": "El anio academico seleccionado no esta activo."})
         return attrs

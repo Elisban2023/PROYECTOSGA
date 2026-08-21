@@ -161,6 +161,7 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "EstadoAcademicoEnum": "sga.models.EstadoAcademico.choices",
         "EstadoGeneralEnum": "sga.models.EstadoGeneral.choices",
+        "EstadoRegistroEnum": "sga.models.EstadoRegistro.choices",
         "EstadoMatriculaEnum": "sga.models.EstadoMatricula.choices",
         "EstadoAsistenciaEnum": "sga.models.EstadoAsistencia.choices",
         "ParentescoEnum": "sga.models.Parentesco.choices",

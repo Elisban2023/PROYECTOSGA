@@ -5,16 +5,22 @@ from django.utils import timezone
 
 
 
-class EstadoAcademico(models.TextChoices):
-    PLANIFICADO = "PLANIFICADO", "Planificado"
-    ACTIVO = "ACTIVO", "Activo"
-    CERRADO = "CERRADO", "Cerrado"
+class EstadoAcademico(models.IntegerChoices):
+    INACTIVO = 0, "Inactivo"
+    PLANIFICADO = 1, "Planificado"
+    ACTIVO = 2, "Activo"
+    CERRADO = 3, "Cerrado"
 
 
-class EstadoGeneral(models.TextChoices):
-    ACTIVO = "ACTIVO", "Activo"
-    INACTIVO = "INACTIVO", "Inactivo"
-    FINALIZADO = "FINALIZADO", "Finalizado"
+class EstadoGeneral(models.IntegerChoices):
+    INACTIVO = 0, "Inactivo"
+    ACTIVO = 1, "Activo"
+    FINALIZADO = 2, "Finalizado"
+
+
+class EstadoRegistro(models.IntegerChoices):
+    INACTIVO = 0, "Inactivo"
+    ACTIVO = 1, "Activo"
 
 
 class EstadoMatricula(models.TextChoices):
@@ -318,21 +324,19 @@ class AnioAcademico(models.Model):
     anio = models.PositiveSmallIntegerField(unique=True)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
-    estado = models.CharField(
-        max_length=30,
+    estado = models.PositiveSmallIntegerField(
         choices=EstadoAcademico.choices,
         default=EstadoAcademico.PLANIFICADO,
     )
-    activo = models.BooleanField(default=True)
 
     def activar(self):
         """Equivale a activar() del UML."""
-        self.estado = "ACTIVO"
+        self.estado = EstadoAcademico.ACTIVO
         self.save(update_fields=["estado"])
 
     def cerrar(self):
         """Equivale a cerrar() del UML."""
-        self.estado = "CERRADO"
+        self.estado = EstadoAcademico.CERRADO
         self.save(update_fields=["estado"])
 
     def __str__(self):
@@ -348,16 +352,14 @@ class PeriodoAcademico(models.Model):
     nombre = models.CharField(max_length=100)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()
-    estado = models.CharField(
-        max_length=30,
+    estado = models.PositiveSmallIntegerField(
         choices=EstadoAcademico.choices,
         default=EstadoAcademico.PLANIFICADO,
     )
-    activo = models.BooleanField(default=True)
 
     def cerrar(self):
         """Equivale a cerrar() del UML."""
-        self.estado = "CERRADO"
+        self.estado = EstadoAcademico.CERRADO
         self.save(update_fields=["estado"])
 
     def __str__(self):
@@ -375,7 +377,10 @@ class PeriodoAcademico(models.Model):
 class Grado(models.Model):
     nombre = models.CharField(max_length=100)
     nivel = models.CharField(max_length=100)
-    activo = models.BooleanField(default=True)
+    estado = models.PositiveSmallIntegerField(
+        choices=EstadoRegistro.choices,
+        default=EstadoRegistro.ACTIVO,
+    )
 
     def actualizar(self, **datos):
         for campo in ("nombre", "nivel"):
@@ -394,7 +399,10 @@ class Seccion(models.Model):
         related_name="secciones",
     )
     nombre = models.CharField(max_length=50)
-    activo = models.BooleanField(default=True)
+    estado = models.PositiveSmallIntegerField(
+        choices=EstadoRegistro.choices,
+        default=EstadoRegistro.ACTIVO,
+    )
 
     def actualizar(self, **datos):
         if "grado" in datos:
@@ -414,7 +422,10 @@ class Curso(models.Model):
         null=True,
         blank=True,
     )
-    estado = models.BooleanField(default=True)
+    estado = models.PositiveSmallIntegerField(
+        choices=EstadoRegistro.choices,
+        default=EstadoRegistro.ACTIVO,
+    )
 
     def actualizar(self, **datos):
         for campo in ("nombre", "descripcion"):
@@ -424,7 +435,11 @@ class Curso(models.Model):
 
     def cambiar_estado(self):
         """Equivale a cambiarEstado() del UML."""
-        self.estado = not self.estado
+        self.estado = (
+            EstadoRegistro.INACTIVO
+            if self.estado == EstadoRegistro.ACTIVO
+            else EstadoRegistro.ACTIVO
+        )
         self.save(update_fields=["estado"])
 
     def __str__(self):
@@ -527,8 +542,7 @@ class AsignacionCurso(models.Model):
         on_delete=models.PROTECT,
         related_name="asignaciones_curso",
     )
-    estado = models.CharField(
-        max_length=30,
+    estado = models.PositiveSmallIntegerField(
         choices=EstadoGeneral.choices,
         default=EstadoGeneral.ACTIVO,
     )

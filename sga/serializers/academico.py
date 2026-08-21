@@ -11,6 +11,8 @@ from sga.models import (
 
 
 class AnioAcademicoSerializer(serializers.ModelSerializer):
+    estado_label = serializers.CharField(source="get_estado_display", read_only=True)
+
     class Meta:
         model = AnioAcademico
         fields = (
@@ -19,12 +21,13 @@ class AnioAcademicoSerializer(serializers.ModelSerializer):
             "fecha_inicio",
             "fecha_fin",
             "estado",
-            "activo",
+            "estado_label",
         )
 
 
 class PeriodoAcademicoSerializer(serializers.ModelSerializer):
     anio_academico_label = serializers.StringRelatedField(source="anio_academico", read_only=True)
+    estado_label = serializers.CharField(source="get_estado_display", read_only=True)
 
     class Meta:
         model = PeriodoAcademico
@@ -36,23 +39,27 @@ class PeriodoAcademicoSerializer(serializers.ModelSerializer):
             "fecha_inicio",
             "fecha_fin",
             "estado",
-            "activo",
+            "estado_label",
         )
 
 
 class GradoSerializer(serializers.ModelSerializer):
+    estado_label = serializers.CharField(source="get_estado_display", read_only=True)
+
     class Meta:
         model = Grado
         fields = (
             "id",
             "nombre",
             "nivel",
-            "activo",
+            "estado",
+            "estado_label",
         )
 
 
 class SeccionSerializer(serializers.ModelSerializer):
     grado_label = serializers.StringRelatedField(source="grado", read_only=True)
+    estado_label = serializers.CharField(source="get_estado_display", read_only=True)
 
     class Meta:
         model = Seccion
@@ -61,11 +68,14 @@ class SeccionSerializer(serializers.ModelSerializer):
             "grado",
             "grado_label",
             "nombre",
-            "activo",
+            "estado",
+            "estado_label",
         )
 
 
 class CursoSerializer(serializers.ModelSerializer):
+    estado_label = serializers.CharField(source="get_estado_display", read_only=True)
+
     class Meta:
         model = Curso
         fields = (
@@ -73,6 +83,7 @@ class CursoSerializer(serializers.ModelSerializer):
             "nombre",
             "descripcion",
             "estado",
+            "estado_label",
         )
 
 
@@ -81,6 +92,7 @@ class AsignacionCursoSerializer(serializers.ModelSerializer):
     docente_label = serializers.StringRelatedField(source="docente", read_only=True)
     seccion_label = serializers.StringRelatedField(source="seccion", read_only=True)
     anio_academico_label = serializers.StringRelatedField(source="anio_academico", read_only=True)
+    estado_label = serializers.CharField(source="get_estado_display", read_only=True)
 
     class Meta:
         model = AsignacionCurso
@@ -95,4 +107,5 @@ class AsignacionCursoSerializer(serializers.ModelSerializer):
             "anio_academico",
             "anio_academico_label",
             "estado",
+            "estado_label",
         )
