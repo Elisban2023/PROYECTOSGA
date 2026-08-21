@@ -25,17 +25,22 @@ from .api import (
     VinculoApoderadoViewSet,
     dashboard,
     actualizar_asistencia,
+    actualizar_calificacion,
     asistencias_docente,
+    calificaciones_docente,
+    criterios_mi_curso,
     estudiantes_mi_curso,
     me,
     menu,
     mis_cursos,
+    periodos_mi_curso,
     reporte_academico,
     reporte_incidencias,
     reporte_matriculas,
     reporte_notificaciones,
     reporte_resumen,
     registrar_asistencias,
+    registrar_calificaciones,
 )
 
 router = DefaultRouter()
@@ -76,6 +81,16 @@ urlpatterns = [
         name="api-docente-estudiantes-mi-curso",
     ),
     path(
+        "docente/mis-cursos/<int:asignacion_id>/periodos/",
+        periodos_mi_curso,
+        name="api-docente-periodos-mi-curso",
+    ),
+    path(
+        "docente/mis-cursos/<int:asignacion_id>/criterios/",
+        criterios_mi_curso,
+        name="api-docente-criterios-mi-curso",
+    ),
+    path(
         "docente/asistencias/",
         asistencias_docente,
         name="api-docente-asistencias",
@@ -89,6 +104,21 @@ urlpatterns = [
         "docente/asistencias/<int:asistencia_id>/",
         actualizar_asistencia,
         name="api-docente-actualizar-asistencia",
+    ),
+    path(
+        "docente/calificaciones/",
+        calificaciones_docente,
+        name="api-docente-calificaciones",
+    ),
+    path(
+        "docente/calificaciones/registrar/",
+        registrar_calificaciones,
+        name="api-docente-registrar-calificaciones",
+    ),
+    path(
+        "docente/calificaciones/<int:calificacion_id>/",
+        actualizar_calificacion,
+        name="api-docente-actualizar-calificacion",
     ),
     path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
     path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),

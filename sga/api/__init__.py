@@ -17,7 +17,17 @@ from .asistencia import (
     asistencias_docente,
     registrar_asistencias,
 )
-from .docente import estudiantes_mi_curso, mis_cursos
+from .calificaciones import (
+    actualizar_calificacion,
+    calificaciones_docente,
+    registrar_calificaciones,
+)
+from .docente import (
+    criterios_mi_curso,
+    estudiantes_mi_curso,
+    mis_cursos,
+    periodos_mi_curso,
+)
 from .dashboard import dashboard
 from .matriculas import MatriculaViewSet
 from .usuarios import (

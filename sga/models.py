@@ -37,6 +37,13 @@ class EstadoAsistencia(models.TextChoices):
     JUSTIFICADA = "JUSTIFICADA", "Justificada"
 
 
+class NivelLogro(models.TextChoices):
+    AD = "AD", "Logro destacado"
+    A = "A", "Logro esperado"
+    B = "B", "En proceso"
+    C = "C", "En inicio"
+
+
 class Parentesco(models.TextChoices):
     PADRE = "PADRE", "Padre"
     MADRE = "MADRE", "Madre"
@@ -753,15 +760,14 @@ class Calificacion(models.Model):
     criterio_calificacion = models.ForeignKey(
         CriterioCalificacion,
         on_delete=models.PROTECT,
-        null=True,
-        blank=True,
         related_name="calificaciones",
     )
 
-    # El UML actualizado indica "Decimal/String".
-    # Se utiliza CharField para admitir una escala numérica o literal
-    # hasta que la escala definitiva del colegio quede establecida.
-    valor = models.CharField(max_length=20)
+    # La institución evalúa con niveles de logro AD, A, B y C.
+    valor = models.CharField(
+        max_length=2,
+        choices=NivelLogro.choices,
+    )
 
     observacion = models.CharField(
         max_length=500,
@@ -777,7 +783,7 @@ class Calificacion(models.Model):
         asignacion_curso,
         periodo_academico,
         valor,
-        criterio_calificacion=None,
+        criterio_calificacion,
         observacion=None,
     ):
         return cls.objects.create(

@@ -17,6 +17,11 @@ from .asistencia import (
     AsistenciaDocenteSerializer,
     RegistrarAsistenciasSerializer,
 )
+from .calificaciones import (
+    ActualizarCalificacionSerializer,
+    CalificacionDocenteSerializer,
+    RegistrarCalificacionesSerializer,
+)
 from .matriculas import MatriculaSerializer
 from .usuarios import (
     ApoderadoSerializer,
