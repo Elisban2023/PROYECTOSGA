@@ -41,6 +41,7 @@ from .reportes_docente import (
     reporte_docente_resumen,
     reporte_docente_seguimiento,
 )
+from .estudiante import mis_cursos_estudiante
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,

@@ -32,6 +32,7 @@ from .observaciones_docente import (
     ObservacionDocenteSerializer,
     RegistrarObservacionDocenteSerializer,
 )
+from .estudiante import EstudianteCursoSerializer
 from .matriculas import MatriculaSerializer
 from .usuarios import (
     ApoderadoSerializer,
