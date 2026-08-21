@@ -141,6 +141,10 @@ SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "")
 SENDGRID_FROM_NAME = os.environ.get("SENDGRID_FROM_NAME", "SGA Institucion Educativa Pitumarca")
 
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
+OPENAI_ENABLED = env_bool("OPENAI_ENABLED", True)
+OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.2")
+
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
         "rest_framework_simplejwt.authentication.JWTAuthentication",

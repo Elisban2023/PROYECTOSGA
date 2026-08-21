@@ -34,6 +34,7 @@ from .observaciones_docente import (
     registrar_observacion,
 )
 from .seguimiento_docente import detalle_seguimiento_docente, seguimiento_docente
+from .recomendaciones_docente import generar_recomendacion, recomendaciones_docente
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,

@@ -50,6 +50,8 @@ from .api import (
     eliminar_observacion,
     detalle_seguimiento_docente,
     seguimiento_docente,
+    generar_recomendacion,
+    recomendaciones_docente,
 )
 
 router = DefaultRouter()
@@ -174,6 +176,8 @@ urlpatterns = [
         detalle_seguimiento_docente,
         name="api-docente-detalle-seguimiento",
     ),
+    path("docente/recomendaciones-ia/", recomendaciones_docente, name="api-docente-recomendaciones"),
+    path("docente/recomendaciones-ia/generar/", generar_recomendacion, name="api-docente-generar-recomendacion"),
     path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
     path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),
     path("reportes/incidencias/", reporte_incidencias, name="api-reporte-incidencias"),
