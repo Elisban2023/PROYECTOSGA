@@ -22,6 +22,11 @@ from .calificaciones import (
     calificaciones_docente,
     registrar_calificaciones,
 )
+from .participaciones import (
+    actualizar_participacion,
+    participaciones_docente,
+    registrar_participacion,
+)
 from .docente import (
     criterios_mi_curso,
     estudiantes_mi_curso,

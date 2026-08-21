@@ -22,6 +22,11 @@ from .calificaciones import (
     CalificacionDocenteSerializer,
     RegistrarCalificacionesSerializer,
 )
+from .participaciones import (
+    ActualizarParticipacionSerializer,
+    ParticipacionDocenteSerializer,
+    RegistrarParticipacionSerializer,
+)
 from .matriculas import MatriculaSerializer
 from .usuarios import (
     ApoderadoSerializer,

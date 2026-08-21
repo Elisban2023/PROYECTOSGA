@@ -26,6 +26,7 @@ from .api import (
     dashboard,
     actualizar_asistencia,
     actualizar_calificacion,
+    actualizar_participacion,
     asistencias_docente,
     calificaciones_docente,
     criterios_mi_curso,
@@ -34,6 +35,7 @@ from .api import (
     menu,
     mis_cursos,
     periodos_mi_curso,
+    participaciones_docente,
     reporte_academico,
     reporte_incidencias,
     reporte_matriculas,
@@ -41,6 +43,7 @@ from .api import (
     reporte_resumen,
     registrar_asistencias,
     registrar_calificaciones,
+    registrar_participacion,
 )
 
 router = DefaultRouter()
@@ -119,6 +122,21 @@ urlpatterns = [
         "docente/calificaciones/<int:calificacion_id>/",
         actualizar_calificacion,
         name="api-docente-actualizar-calificacion",
+    ),
+    path(
+        "docente/participaciones/",
+        participaciones_docente,
+        name="api-docente-participaciones",
+    ),
+    path(
+        "docente/participaciones/registrar/",
+        registrar_participacion,
+        name="api-docente-registrar-participacion",
+    ),
+    path(
+        "docente/participaciones/<int:participacion_id>/",
+        actualizar_participacion,
+        name="api-docente-actualizar-participacion",
     ),
     path("reportes/resumen/", reporte_resumen, name="api-reporte-resumen"),
     path("reportes/matriculas/", reporte_matriculas, name="api-reporte-matriculas"),
