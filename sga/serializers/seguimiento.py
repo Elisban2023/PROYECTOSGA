@@ -1,4 +1,5 @@
 ﻿from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sga.models import (
@@ -146,8 +147,23 @@ class RecomendacionIASerializer(serializers.ModelSerializer):
     estudiante_label = serializers.StringRelatedField(source="matricula.estudiante", read_only=True)
     estudiante_codigo = serializers.CharField(source="matricula.estudiante.codigo_estudiante", read_only=True)
     seccion_label = serializers.StringRelatedField(source="matricula.seccion", read_only=True)
+    asignacion_curso_label = serializers.StringRelatedField(
+        source="asignacion_curso",
+        read_only=True,
+    )
+    curso_nombre = serializers.CharField(
+        source="asignacion_curso.curso.nombre",
+        read_only=True,
+        allow_null=True,
+    )
     periodo_academico_label = serializers.StringRelatedField(source="periodo_academico", read_only=True)
     docente_revisor_label = serializers.StringRelatedField(source="revisado_por_docente", read_only=True)
+    estado_revision_label = serializers.CharField(
+        source="get_estado_revision_display",
+        read_only=True,
+    )
+    contenido_generado = serializers.SerializerMethodField()
+    texto_final = serializers.SerializerMethodField()
 
     class Meta:
         model = RecomendacionIA
@@ -157,19 +173,38 @@ class RecomendacionIASerializer(serializers.ModelSerializer):
             "estudiante_label",
             "estudiante_codigo",
             "seccion_label",
+            "asignacion_curso",
+            "asignacion_curso_label",
+            "curso_nombre",
             "periodo_academico",
             "periodo_academico_label",
             "revisado_por_docente",
             "docente_revisor_label",
             "resumen_contexto",
             "texto_generado",
+            "contenido_generado",
             "texto_revisado",
+            "texto_final",
             "estado_revision",
+            "estado_revision_label",
             "fecha_generacion",
             "fecha_revision",
             "activo",
         )
         read_only_fields = ("fecha_revision",)
+
+    @extend_schema_field(serializers.DictField())
+    def get_contenido_generado(self, obj):
+        from sga.services.recomendaciones_docente import parsear_contenido_generado
+
+        return parsear_contenido_generado(obj.texto_generado)
+
+    @extend_schema_field(serializers.CharField())
+    def get_texto_final(self, obj):
+        if obj.texto_revisado:
+            return obj.texto_revisado
+        contenido = self.get_contenido_generado(obj)
+        return contenido.get("resumen") or obj.texto_generado
 
     def validate_resumen_contexto(self, value):
         value = value.strip()
@@ -198,6 +233,10 @@ class RecomendacionIASerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         matricula = attrs.get("matricula", getattr(self.instance, "matricula", None))
+        asignacion = attrs.get(
+            "asignacion_curso",
+            getattr(self.instance, "asignacion_curso", None),
+        )
         periodo = attrs.get("periodo_academico", getattr(self.instance, "periodo_academico", None))
         docente = attrs.get("revisado_por_docente", getattr(self.instance, "revisado_por_docente", None))
         estado = attrs.get("estado_revision", getattr(self.instance, "estado_revision", EstadoRevisionIA.PENDIENTE))
@@ -205,6 +244,15 @@ class RecomendacionIASerializer(serializers.ModelSerializer):
 
         if matricula is not None and matricula.estado != "ACTIVA":
             raise serializers.ValidationError({"matricula": "La matricula seleccionada no esta activa."})
+        if asignacion is not None and matricula is not None:
+            if asignacion.seccion_id != matricula.seccion_id:
+                raise serializers.ValidationError(
+                    {"asignacion_curso": "La asignacion no corresponde a la seccion de la matricula."}
+                )
+            if asignacion.anio_academico_id != matricula.anio_academico_id:
+                raise serializers.ValidationError(
+                    {"asignacion_curso": "La asignacion no corresponde al anio de la matricula."}
+                )
         if periodo is not None:
             if periodo.estado == EstadoAcademico.INACTIVO:
                 raise serializers.ValidationError({"periodo_academico": "El periodo academico seleccionado esta inactivo."})
@@ -238,5 +286,26 @@ class RecomendacionIASerializer(serializers.ModelSerializer):
 
 
 class RecomendacionIARevisionSerializer(serializers.Serializer):
-    docente = serializers.IntegerField(required=True)
-    texto_revisado = serializers.CharField(required=False, allow_blank=True)
+    estado_revision = serializers.ChoiceField(
+        choices=(
+            EstadoRevisionIA.APROBADA,
+            EstadoRevisionIA.RECHAZADA,
+            EstadoRevisionIA.EDITADA,
+        )
+    )
+    texto_revisado = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        allow_null=True,
+        min_length=10,
+    )
+
+    def validate(self, attrs):
+        if (
+            attrs["estado_revision"] == EstadoRevisionIA.EDITADA
+            and not (attrs.get("texto_revisado") or "").strip()
+        ):
+            raise serializers.ValidationError(
+                {"texto_revisado": "Debe registrar el texto revisado."}
+            )
+        return attrs

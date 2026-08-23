@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sga.models import EstadoMatricula, VinculoApoderado
@@ -14,6 +15,9 @@ class ApoderadoEstudianteSerializer(serializers.ModelSerializer):
         model = VinculoApoderado
         fields = ("id", "estudiante_id", "codigo_estudiante", "estudiante_nombre", "parentesco", "parentesco_label", "es_principal", "matriculas_activas")
 
+    @extend_schema_field(
+        serializers.ListField(child=serializers.DictField())
+    )
     def get_matriculas_activas(self, obj):
         return [
             {"id": matricula.id, "anio_academico": matricula.anio_academico.anio, "grado_nombre": matricula.seccion.grado.nombre, "seccion_nombre": matricula.seccion.nombre}

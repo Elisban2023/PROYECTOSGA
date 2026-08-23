@@ -1082,6 +1082,13 @@ class RecomendacionIA(models.Model):
         on_delete=models.PROTECT,
         related_name="recomendaciones_ia",
     )
+    asignacion_curso = models.ForeignKey(
+        AsignacionCurso,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="recomendaciones_ia",
+    )
     periodo_academico = models.ForeignKey(
         PeriodoAcademico,
         on_delete=models.PROTECT,

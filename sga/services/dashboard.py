@@ -83,7 +83,11 @@ def _docente_dashboard(user):
             "estudiantes": matriculas.values("estudiante_id").distinct().count(),
             "observaciones_registradas": ObservacionAcademica.objects.filter(docente_id=docente_id, activo=True).count(),
             "incidencias_abiertas": IncidenciaAcademica.objects.filter(matricula_id__in=matricula_ids, estado=EstadoIncidencia.ABIERTA).count(),
-            "recomendaciones_pendientes": RecomendacionIA.objects.filter(matricula_id__in=matricula_ids, estado_revision="PENDIENTE", activo=True).count(),
+            "recomendaciones_pendientes": RecomendacionIA.objects.filter(
+                asignacion_curso__docente_id=docente_id,
+                estado_revision="PENDIENTE",
+                activo=True,
+            ).count(),
         },
         "items": list(
             asignaciones.select_related("curso", "seccion__grado", "anio_academico")
@@ -114,7 +118,11 @@ def _estudiante_dashboard(user):
             "asistencias_registradas": Asistencia.objects.filter(matricula_id__in=matricula_ids).count(),
             "calificaciones": Calificacion.objects.filter(matricula_id__in=matricula_ids).count(),
             "incidencias_abiertas": IncidenciaAcademica.objects.filter(matricula_id__in=matricula_ids, estado=EstadoIncidencia.ABIERTA).count(),
-            "recomendaciones": RecomendacionIA.objects.filter(matricula_id__in=matricula_ids, activo=True).count(),
+            "recomendaciones": RecomendacionIA.objects.filter(
+                matricula_id__in=matricula_ids,
+                estado_revision__in=("APROBADA", "EDITADA"),
+                activo=True,
+            ).count(),
         },
         "items": list(
             asignaciones.select_related("curso", "seccion__grado", "anio_academico")

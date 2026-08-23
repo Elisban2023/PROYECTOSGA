@@ -110,6 +110,8 @@ class RecomendacionIAViewSet(AdminCatalogViewSet):
         "matricula__estudiante__perfil__user",
         "matricula__seccion__grado",
         "matricula__anio_academico",
+        "asignacion_curso__curso",
+        "asignacion_curso__seccion__grado",
         "periodo_academico",
         "revisado_por_docente__perfil__user",
     ).order_by("-fecha_generacion")
@@ -133,6 +135,7 @@ class RecomendacionIAViewSet(AdminCatalogViewSet):
         filters_map = {
             "matricula": "matricula_id",
             "estudiante": "matricula__estudiante_id",
+            "asignacion_curso": "asignacion_curso_id",
             "periodo_academico": "periodo_academico_id",
             "revisado_por_docente": "revisado_por_docente_id",
             "estado_revision": "estado_revision",

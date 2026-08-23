@@ -27,7 +27,7 @@ def mis_notificaciones(request):
     return Response(NotificacionSerializer(queryset, many=True).data)
 
 
-@extend_schema(responses=NotificacionEstadoSerializer)
+@extend_schema(request=None, responses=NotificacionEstadoSerializer)
 @api_view(["POST"])
 @permission_classes([IsApoderado])
 def marcar_notificacion_leida(request, notificacion_id):

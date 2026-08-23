@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from sga.models import Asistencia, Calificacion, IncidenciaAcademica, ObservacionAcademica, Participacion
 from sga.permissions import IsEstudiante
 from sga.services.estudiante import get_matriculas_estudiante
+from sga.services.recomendaciones_docente import get_recomendaciones_publicadas
 
 
 @extend_schema(responses=OpenApiTypes.OBJECT)
@@ -28,5 +29,6 @@ def mi_seguimiento(request):
             "participaciones": Participacion.objects.filter(matricula=matricula).count(),
             "observaciones": list(ObservacionAcademica.objects.filter(matricula=matricula, activo=True).order_by("-fecha").values("id", "fecha", "categoria", "descripcion")[:10]),
             "incidencias": list(IncidenciaAcademica.objects.filter(matricula=matricula).order_by("-fecha_registro").values("id", "tipo", "nivel", "estado", "descripcion", "fecha_registro")[:10]),
+            "recomendaciones": get_recomendaciones_publicadas(matricula),
         })
     return Response(resultado)

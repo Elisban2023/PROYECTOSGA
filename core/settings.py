@@ -151,6 +151,12 @@ CORS_ALLOWED_ORIGINS = env_list(
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
 OPENAI_ENABLED = env_bool("OPENAI_ENABLED", True)
 OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-5.2")
+OPENAI_API_URL = os.environ.get(
+    "OPENAI_API_URL",
+    "https://api.openai.com/v1/responses",
+)
+OPENAI_TIMEOUT = int(os.environ.get("OPENAI_TIMEOUT", "45"))
+OPENAI_MAX_OUTPUT_TOKENS = int(os.environ.get("OPENAI_MAX_OUTPUT_TOKENS", "1200"))
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (

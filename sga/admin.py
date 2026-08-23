@@ -323,13 +323,19 @@ class NotificacionAdmin(admin.ModelAdmin):
 class RecomendacionIAAdmin(admin.ModelAdmin):
     list_display = (
         "matricula",
+        "asignacion_curso",
         "periodo_academico",
         "estado_revision",
         "revisado_por_docente",
         "fecha_generacion",
         "fecha_revision",
     )
-    list_filter = ("estado_revision", "periodo_academico", "fecha_generacion")
+    list_filter = (
+        "estado_revision",
+        "asignacion_curso__curso",
+        "periodo_academico",
+        "fecha_generacion",
+    )
     search_fields = (
         "matricula__estudiante__codigo_estudiante",
         "matricula__estudiante__perfil__user__first_name",
@@ -338,5 +344,10 @@ class RecomendacionIAAdmin(admin.ModelAdmin):
         "texto_generado",
         "texto_revisado",
     )
-    autocomplete_fields = ("matricula", "periodo_academico", "revisado_por_docente")
+    autocomplete_fields = (
+        "matricula",
+        "asignacion_curso",
+        "periodo_academico",
+        "revisado_por_docente",
+    )
     date_hierarchy = "fecha_generacion"
