@@ -9,10 +9,13 @@ from .models import (
     Capacidad,
     Competencia,
     ConfiguracionInstitucional,
+    CorreoInstitucional,
     CriterioCalificacion,
     Curso,
     Docente,
+    DesafioMFA,
     Estudiante,
+    EventoAutenticacion,
     Grado,
     IncidenciaAcademica,
     Matricula,
@@ -108,8 +111,53 @@ class RegistroAuditoriaAdmin(admin.ModelAdmin):
     list_filter = ("modulo", "accion", "fecha")
     search_fields = ("user__username", "accion", "modulo", "entidad", "entidad_id")
     autocomplete_fields = ("user",)
-    readonly_fields = ("fecha",)
+    readonly_fields = ("user", "accion", "modulo", "entidad", "entidad_id", "fecha")
     date_hierarchy = "fecha"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(EventoAutenticacion)
+class EventoAutenticacionAdmin(admin.ModelAdmin):
+    list_display = ("fecha", "user", "tipo", "exitoso", "direccion_ip")
+    list_filter = ("tipo", "exitoso", "fecha")
+    search_fields = ("user__username", "direccion_ip", "identificador_hash")
+    readonly_fields = (
+        "user",
+        "tipo",
+        "exitoso",
+        "identificador_hash",
+        "direccion_ip",
+        "user_agent",
+        "detalle",
+        "fecha",
+    )
+    date_hierarchy = "fecha"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(DesafioMFA)
+class DesafioMFAAdmin(admin.ModelAdmin):
+    list_display = ("id", "user", "creado_en", "expira_en", "intentos", "usado")
+    list_filter = ("usado", "creado_en", "expira_en")
+    search_fields = ("user__username", "user__email")
+    exclude = ("codigo_hash",)
+    readonly_fields = ("user", "creado_en", "expira_en", "intentos", "usado")
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(AnioAcademico)
@@ -317,6 +365,46 @@ class NotificacionAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ("incidencia", "apoderado")
     date_hierarchy = "fecha_envio"
+
+
+@admin.register(CorreoInstitucional)
+class CorreoInstitucionalAdmin(admin.ModelAdmin):
+    list_display = ("asunto", "destinatario", "rol_destinatario", "tipo", "estado", "fecha_creacion", "fecha_envio")
+    list_filter = ("rol_destinatario", "tipo", "estado", "fecha_creacion")
+    search_fields = (
+        "asunto",
+        "mensaje",
+        "destinatario__username",
+        "destinatario__first_name",
+        "destinatario__last_name",
+        "destinatario__email",
+    )
+    readonly_fields = (
+        "destinatario",
+        "enviado_por",
+        "rol_destinatario",
+        "tipo",
+        "matricula",
+        "asignacion_curso",
+        "periodo_academico",
+        "recomendacion",
+        "incidencia",
+        "asunto",
+        "mensaje",
+        "accion_texto",
+        "accion_url",
+        "estado",
+        "detalle_error",
+        "fecha_creacion",
+        "fecha_envio",
+    )
+    date_hierarchy = "fecha_creacion"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(RecomendacionIA)

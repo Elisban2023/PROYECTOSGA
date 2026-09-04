@@ -75,6 +75,13 @@ from .usuarios import (
 )
 from .seguimiento import IncidenciaAcademicaViewSet, ObservacionAcademicaViewSet, RecomendacionIAViewSet
 from .notificaciones import NotificacionViewSet
+from .correos import CorreoInstitucionalViewSet
+from .comunicaciones_docente import (
+    comunicaciones_docente,
+    detalle_comunicacion_docente,
+    enviar_comunicacion,
+    previsualizar_comunicacion,
+)
 
 from .auditoria import RegistroAuditoriaViewSet
 from .configuracion import ConfiguracionInstitucionalViewSet

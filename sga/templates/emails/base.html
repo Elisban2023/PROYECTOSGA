@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width"></head>
+<body style="margin:0;background:#f4f6f8;color:#172033;font-family:Arial,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f6f8;padding:28px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:620px;background:#ffffff;border:1px solid #dfe3e8;">
+        <tr><td style="padding:24px 28px;background:{{ color }};color:#ffffff;">
+          <div style="font-size:13px;font-weight:bold;text-transform:uppercase;">SGA | I.E. CUSCO</div>
+          <div style="font-size:24px;font-weight:bold;margin-top:10px;">{% block encabezado %}{{ encabezado }}{% endblock %}</div>
+          <div style="font-size:14px;margin-top:6px;">{{ descripcion }}</div>
+        </td></tr>
+        <tr><td style="padding:30px 28px;">
+          <p style="margin:0 0 18px;font-size:16px;">Hola, <strong>{{ nombre_destinatario }}</strong>:</p>
+          <h1 style="margin:0 0 16px;font-size:21px;line-height:1.35;">{{ asunto }}</h1>
+          <div style="font-size:15px;line-height:1.65;color:#334155;">{{ mensaje|linebreaksbr }}</div>
+          {% if accion_url and accion_texto %}
+          <p style="margin:26px 0 4px;">
+            <a href="{{ accion_url }}" style="display:inline-block;padding:12px 18px;background:{{ color }};color:#ffffff;text-decoration:none;font-weight:bold;">{{ accion_texto }}</a>
+          </p>
+          {% endif %}
+        </td></tr>
+        <tr><td style="padding:18px 28px;border-top:1px solid #e5e7eb;color:#64748b;font-size:12px;line-height:1.5;">
+          Este mensaje fue enviado por el Sistema de Gestion Academica de la Institucion Educativa CUSCO.<br>
+          No respondas a este correo automatico. &copy; {{ anio }}
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>

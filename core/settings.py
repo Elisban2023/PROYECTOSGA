@@ -3,6 +3,7 @@ Django settings for core project.
 """
 
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -59,6 +60,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
     "drf_spectacular",
     "sga",
 ]
@@ -118,6 +120,7 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 12},
     },
     {
         "NAME": "django.contrib.auth.password_validation.CommonPasswordValidator",
@@ -141,7 +144,17 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 SENDGRID_ENABLED = env_bool("SENDGRID_ENABLED", False)
 SENDGRID_API_KEY = os.environ.get("SENDGRID_API_KEY", "")
 SENDGRID_FROM_EMAIL = os.environ.get("SENDGRID_FROM_EMAIL", "")
-SENDGRID_FROM_NAME = os.environ.get("SENDGRID_FROM_NAME", "SGA Institucion Educativa Pitumarca")
+SENDGRID_FROM_NAME = os.environ.get("SENDGRID_FROM_NAME", "SGA Institucion Educativa CUSCO")
+SENDGRID_TIMEOUT = int(os.environ.get("SENDGRID_TIMEOUT", "15"))
+FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
+MFA_CODE_TTL_MINUTES = int(os.environ.get("MFA_CODE_TTL_MINUTES", "10"))
+MFA_MAX_ATTEMPTS = int(os.environ.get("MFA_MAX_ATTEMPTS", "5"))
+PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", "1800"))
+PASSWORD_RESET_RESEND_SECONDS = int(os.environ.get("PASSWORD_RESET_RESEND_SECONDS", "60"))
+PASSWORD_RESET_FRONTEND_PATH = os.environ.get(
+    "PASSWORD_RESET_FRONTEND_PATH",
+    "/recuperar-contrasena/confirmar",
+)
 
 CORS_ALLOWED_ORIGINS = env_list(
     "CORS_ALLOWED_ORIGINS",
@@ -168,7 +181,34 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
     "PAGE_SIZE": 20,
+    "DEFAULT_THROTTLE_CLASSES": (
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ),
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": "60/minute",
+        "user": "300/minute",
+        "login": "5/minute",
+        "mfa": "10/minute",
+        "password_reset": "3/hour",
+        "password_reset_validate": "10/minute",
+        "password_reset_confirm": "5/hour",
+        "password_change": "5/hour",
+        "logout": "10/minute",
+        "token_refresh": "20/hour",
+    },
 }
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=10),
+    "REFRESH_TOKEN_LIFETIME": timedelta(hours=8),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+}
+
+DJANGO_ADMIN_ENABLED = env_bool("DJANGO_ADMIN_ENABLED", DEBUG)
+API_DOCS_ENABLED = env_bool("API_DOCS_ENABLED", DEBUG)
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "SGA API",
@@ -187,6 +227,8 @@ SPECTACULAR_SETTINGS = {
         "NivelIncidenciaEnum": "sga.models.NivelIncidencia.choices",
         "EstadoIncidenciaEnum": "sga.models.EstadoIncidencia.choices",
         "EstadoEnvioEnum": "sga.models.EstadoEnvio.choices",
+        "EstadoCorreoEnum": "sga.models.EstadoCorreo.choices",
+        "TipoCorreoEnum": "sga.models.TipoCorreo.choices",
         "EstadoRevisionIAEnum": "sga.models.EstadoRevisionIA.choices",
     },
 }

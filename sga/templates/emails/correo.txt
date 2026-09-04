@@ -1,0 +1,14 @@
+{% autoescape off %}SGA | Institucion Educativa CUSCO
+{{ encabezado }}
+
+Hola, {{ nombre_destinatario }}:
+
+{{ asunto }}
+
+{{ mensaje }}
+{% if accion_url and accion_texto %}
+{{ accion_texto }}: {{ accion_url }}
+{% endif %}
+
+Este mensaje fue enviado automaticamente por el Sistema de Gestion Academica.
+{% endautoescape %}

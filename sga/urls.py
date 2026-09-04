@@ -16,6 +16,11 @@ from .api import (
     IncidenciaAcademicaViewSet,
     MatriculaViewSet,
     NotificacionViewSet,
+    CorreoInstitucionalViewSet,
+    comunicaciones_docente,
+    detalle_comunicacion_docente,
+    enviar_comunicacion,
+    previsualizar_comunicacion,
     ObservacionAcademicaViewSet,
     PeriodoAcademicoViewSet,
     RecomendacionIAViewSet,
@@ -85,6 +90,7 @@ router.register("matriculas", MatriculaViewSet, basename="matricula")
 router.register("observaciones", ObservacionAcademicaViewSet, basename="observacion")
 router.register("incidencias", IncidenciaAcademicaViewSet, basename="incidencia")
 router.register("notificaciones", NotificacionViewSet, basename="notificacion")
+router.register("correos", CorreoInstitucionalViewSet, basename="correo")
 router.register("recomendaciones-ia", RecomendacionIAViewSet, basename="recomendacion-ia")
 router.register("anios-academicos", AnioAcademicoViewSet, basename="anio-academico")
 router.register("periodos", PeriodoAcademicoViewSet, basename="periodo-academico")
@@ -198,6 +204,10 @@ urlpatterns = [
         name="api-docente-detalle-seguimiento",
     ),
     path("docente/recomendaciones-ia/", recomendaciones_docente, name="api-docente-recomendaciones"),
+    path("docente/comunicaciones/", comunicaciones_docente, name="api-docente-comunicaciones"),
+    path("docente/comunicaciones/previsualizar/", previsualizar_comunicacion, name="api-docente-previsualizar-comunicacion"),
+    path("docente/comunicaciones/enviar/", enviar_comunicacion, name="api-docente-enviar-comunicacion"),
+    path("docente/comunicaciones/<int:correo_id>/", detalle_comunicacion_docente, name="api-docente-detalle-comunicacion"),
     path("docente/recomendaciones-ia/generar/", generar_recomendacion, name="api-docente-generar-recomendacion"),
     path(
         "docente/recomendaciones-ia/<int:recomendacion_id>/",

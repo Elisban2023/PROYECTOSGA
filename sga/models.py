@@ -1,3 +1,5 @@
+import uuid
+
 from django.conf import settings
 from django.core.exceptions import ValidationError
 from django.db import models
@@ -82,6 +84,34 @@ class EstadoEnvio(models.TextChoices):
     ENVIADA = "ENVIADA", "Enviada"
     FALLIDA = "FALLIDA", "Fallida"
     LEIDA = "LEIDA", "Leida"
+
+
+class EstadoCorreo(models.TextChoices):
+    PENDIENTE = "PENDIENTE", "Pendiente"
+    ENVIADO = "ENVIADO", "Enviado"
+    FALLIDO = "FALLIDO", "Fallido"
+
+
+class TipoCorreo(models.TextChoices):
+    INSTITUCIONAL = "INSTITUCIONAL", "Institucional"
+    CALIFICACIONES = "CALIFICACIONES", "Calificaciones"
+    RECOMENDACION = "RECOMENDACION", "Recomendacion"
+    INCIDENCIA = "INCIDENCIA", "Incidencia"
+    ASISTENCIA = "ASISTENCIA", "Asistencia"
+    SEGUIMIENTO = "SEGUIMIENTO", "Seguimiento"
+
+
+class TipoEventoAutenticacion(models.TextChoices):
+    LOGIN_EXITOSO = "LOGIN_EXITOSO", "Inicio de sesion exitoso"
+    LOGIN_FALLIDO = "LOGIN_FALLIDO", "Inicio de sesion fallido"
+    MFA_SOLICITADO = "MFA_SOLICITADO", "MFA solicitado"
+    MFA_EXITOSO = "MFA_EXITOSO", "MFA exitoso"
+    MFA_FALLIDO = "MFA_FALLIDO", "MFA fallido"
+    LOGOUT = "LOGOUT", "Cierre de sesion"
+    PASSWORD_RESET_SOLICITADO = "PASSWORD_RESET_SOLICITADO", "Recuperacion solicitada"
+    PASSWORD_RESET_ENVIADO = "PASSWORD_RESET_ENVIADO", "Recuperacion enviada"
+    PASSWORD_RESET_COMPLETADO = "PASSWORD_RESET_COMPLETADO", "Contrasena recuperada"
+    PASSWORD_CAMBIADO = "PASSWORD_CAMBIADO", "Contrasena cambiada"
 
 
 class EstadoRevisionIA(models.TextChoices):
@@ -1154,3 +1184,122 @@ class RecomendacionIA(models.Model):
             f"{self.estado_revision} - "
             f"{self.fecha_generacion:%Y-%m-%d}"
         )
+
+
+class CorreoInstitucional(models.Model):
+    destinatario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="correos_institucionales_recibidos",
+    )
+    enviado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="correos_institucionales_enviados",
+    )
+    rol_destinatario = models.CharField(max_length=30)
+    tipo = models.CharField(
+        max_length=30,
+        choices=TipoCorreo.choices,
+        default=TipoCorreo.INSTITUCIONAL,
+    )
+    matricula = models.ForeignKey(
+        Matricula,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correos_institucionales",
+    )
+    asignacion_curso = models.ForeignKey(
+        AsignacionCurso,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correos_institucionales",
+    )
+    periodo_academico = models.ForeignKey(
+        PeriodoAcademico,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correos_institucionales",
+    )
+    recomendacion = models.ForeignKey(
+        RecomendacionIA,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correos_institucionales",
+    )
+    incidencia = models.ForeignKey(
+        IncidenciaAcademica,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="correos_institucionales",
+    )
+    asunto = models.CharField(max_length=200)
+    mensaje = models.TextField()
+    accion_texto = models.CharField(max_length=80, null=True, blank=True)
+    accion_url = models.URLField(max_length=500, null=True, blank=True)
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoCorreo.choices,
+        default=EstadoCorreo.PENDIENTE,
+    )
+    detalle_error = models.CharField(max_length=250, null=True, blank=True)
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_envio = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.destinatario} - {self.asunto} - {self.estado}"
+
+    class Meta:
+        ordering = ("-fecha_creacion", "-id")
+
+
+class DesafioMFA(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="desafios_mfa",
+    )
+    codigo_hash = models.CharField(max_length=128)
+    creado_en = models.DateTimeField(default=timezone.now)
+    expira_en = models.DateTimeField()
+    intentos = models.PositiveSmallIntegerField(default=0)
+    usado = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ("-creado_en",)
+        indexes = [models.Index(fields=("user", "usado", "expira_en"))]
+
+
+class EventoAutenticacion(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="eventos_autenticacion",
+    )
+    tipo = models.CharField(max_length=40, choices=TipoEventoAutenticacion.choices)
+    exitoso = models.BooleanField(default=False)
+    identificador_hash = models.CharField(max_length=64, null=True, blank=True)
+    direccion_ip = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.CharField(max_length=255, null=True, blank=True)
+    detalle = models.CharField(max_length=150, null=True, blank=True)
+    fecha = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.tipo} - {self.user or 'usuario no identificado'} - {self.fecha:%Y-%m-%d %H:%M}"
+
+    class Meta:
+        ordering = ("-fecha", "-id")
+        indexes = [
+            models.Index(fields=("user", "fecha")),
+            models.Index(fields=("tipo", "fecha")),
+        ]

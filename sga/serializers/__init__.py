@@ -49,6 +49,8 @@ from .seguimiento import (
     RecomendacionIASerializer,
 )
 from .notificaciones import NotificacionEstadoSerializer, NotificacionSerializer
+from .correos import CorreoInstitucionalSerializer, CorreoSolicitudSerializer
+from .comunicaciones_docente import ComunicacionDocenteSolicitudSerializer
 
 from .auditoria import RegistroAuditoriaSerializer
 from .configuracion import ConfiguracionInstitucionalSerializer
