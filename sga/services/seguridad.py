@@ -46,7 +46,21 @@ def registrar_evento_autenticacion(request, tipo, *, user=None, exitoso=False, i
 
 def emitir_tokens(user):
     refresh = RefreshToken.for_user(user)
-    return {"refresh": str(refresh), "access": str(refresh.access_token)}
+    return {
+        "refresh": str(refresh),
+        "access": str(refresh.access_token),
+        "session": configuracion_sesion(),
+    }
+
+
+def configuracion_sesion():
+    return {
+        "idle_timeout_seconds": settings.SESSION_IDLE_TIMEOUT_MINUTES * 60,
+        "access_expires_in_seconds": int(
+            settings.SIMPLE_JWT["ACCESS_TOKEN_LIFETIME"].total_seconds()
+        ),
+        "refresh_rotation": bool(settings.SIMPLE_JWT.get("ROTATE_REFRESH_TOKENS")),
+    }
 
 
 def iniciar_desafio_mfa(user, request):

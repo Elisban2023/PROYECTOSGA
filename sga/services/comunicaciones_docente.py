@@ -1,20 +1,25 @@
 from collections import Counter
 
 from django.conf import settings
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sga.models import (
     Asistencia,
     Calificacion,
     CorreoInstitucional,
+    EstadoCorreo,
+    EstadoEnvio,
     EstadoMatricula,
     EstadoRevisionIA,
     IncidenciaAcademica,
     Matricula,
     ObservacionAcademica,
+    Notificacion,
     PeriodoAcademico,
     RecomendacionIA,
     TipoCorreo,
+    TipoNotificacion,
     VinculoApoderado,
 )
 from sga.roles import ROLE_APODERADO
@@ -72,21 +77,30 @@ def preparar_comunicacion_docente(user, datos):
 
     destinatarios = []
     omitidos = []
+    advertencias = []
     for vinculo in vinculos:
         usuario = vinculo.apoderado.perfil.user
-        if usuario.is_active and usuario.email:
+        if usuario.is_active:
             destinatarios.append(usuario)
+            if not usuario.email:
+                advertencias.append(
+                    {
+                        "apoderado_id": vinculo.apoderado_id,
+                        "nombre": usuario.get_full_name().strip() or usuario.username,
+                        "motivo": "Recibira la notificacion interna, pero no el correo porque no tiene email.",
+                    }
+                )
         else:
             omitidos.append(
                 {
                     "apoderado_id": vinculo.apoderado_id,
                     "nombre": usuario.get_full_name().strip() or usuario.username,
-                    "motivo": "Usuario inactivo o sin correo electronico.",
+                    "motivo": "Usuario inactivo.",
                 }
             )
     if not destinatarios:
         raise ValidationError(
-            {"matricula_id": "Ningun apoderado vinculado tiene un correo habilitado."}
+            {"matricula_id": "Ningun apoderado vinculado tiene un usuario activo."}
         )
 
     return {
@@ -100,8 +114,10 @@ def preparar_comunicacion_docente(user, datos):
         "mensaje": mensaje,
         "accion_texto": accion_texto,
         "accion_url": f"{settings.FRONTEND_URL}{ruta}",
+        "accion_ruta": ruta,
         "destinatarios": destinatarios,
         "omitidos": omitidos,
+        "advertencias": advertencias,
     }
 
 
@@ -122,6 +138,7 @@ def enviar_comunicacion_docente(user, datos):
     comunicacion = preparar_comunicacion_docente(user, datos)
     enviados = []
     fallidos = []
+    notificaciones = []
     campos = {
         clave: valor
         for clave, valor in comunicacion.items()
@@ -149,8 +166,58 @@ def enviar_comunicacion_docente(user, datos):
             )
             enviados.append(correo)
         except CorreoError as exc:
-            fallidos.append(exc.correo)
-    return comunicacion, enviados, fallidos
+            correo = exc.correo
+            fallidos.append(correo)
+        notificaciones.append(
+            _registrar_notificacion_interna(
+                user=user,
+                comunicacion=comunicacion,
+                destinatario=destinatario,
+                correo=correo,
+            )
+        )
+    return comunicacion, enviados, fallidos, notificaciones
+
+
+def _registrar_notificacion_interna(*, user, comunicacion, destinatario, correo):
+    tipos = {
+        TipoCorreo.CALIFICACIONES: TipoNotificacion.CALIFICACION,
+        TipoCorreo.RECOMENDACION: TipoNotificacion.RECOMENDACION,
+        TipoCorreo.INCIDENCIA: TipoNotificacion.INCIDENCIA,
+        TipoCorreo.ASISTENCIA: TipoNotificacion.ASISTENCIA,
+        TipoCorreo.SEGUIMIENTO: TipoNotificacion.ACADEMICA,
+    }
+    estado = (
+        EstadoEnvio.ENVIADA
+        if correo.estado == EstadoCorreo.ENVIADO
+        else EstadoEnvio.FALLIDA
+    )
+    apoderado = getattr(getattr(destinatario, "perfil", None), "apoderado", None)
+    return Notificacion.objects.create(
+        incidencia=comunicacion["incidencia"],
+        recomendacion=comunicacion["recomendacion"],
+        apoderado=apoderado,
+        destinatario=destinatario,
+        enviado_por_docente=user.perfil.docente,
+        tipo=tipos[comunicacion["tipo"]],
+        prioridad="ALTA" if comunicacion["tipo"] == TipoCorreo.INCIDENCIA else "NORMAL",
+        titulo=comunicacion["asunto"],
+        mensaje=comunicacion["mensaje"],
+        accion_url=comunicacion["accion_ruta"],
+        datos={
+            "matricula_id": comunicacion["matricula"].id,
+            "asignacion_curso_id": comunicacion["asignacion_curso"].id,
+            "periodo_academico_id": (
+                comunicacion["periodo_academico"].id
+                if comunicacion["periodo_academico"]
+                else None
+            ),
+            "correo_id": correo.id,
+        },
+        estado_envio=estado,
+        fecha_envio=correo.fecha_envio or timezone.now(),
+        detalle_error=correo.detalle_error,
+    )
 
 
 def get_comunicaciones_docente(user):

@@ -1,5 +1,6 @@
 import json
 import socket
+import time
 from urllib import error, request
 
 from django.conf import settings
@@ -15,12 +16,15 @@ from sga.models import (
     EstadoRevisionIA,
     IncidenciaAcademica,
     Matricula,
+    Notificacion,
     ObservacionAcademica,
     Participacion,
     PeriodoAcademico,
     RecomendacionIA,
+    VinculoApoderado,
 )
 from sga.services.docente import get_asignaciones_docente
+from sga.services.notificaciones import crear_notificaciones_docente
 
 
 ESTADOS_PUBLICADOS = (EstadoRevisionIA.APROBADA, EstadoRevisionIA.EDITADA)
@@ -149,6 +153,105 @@ def revisar_recomendacion_docente(
         texto_revisado=texto,
     )
     return recomendacion
+
+
+def publicar_recomendacion_docente(
+    user,
+    *,
+    recomendacion_id,
+    notificar_estudiante=True,
+    notificar_apoderados=False,
+    prioridad="NORMAL",
+    mensaje_adicional="",
+):
+    recomendacion = get_recomendacion_docente(user, recomendacion_id)
+    if recomendacion.estado_revision not in ESTADOS_PUBLICADOS:
+        raise ValidationError(
+            {"recomendacion_id": "La recomendacion debe estar aprobada o editada antes de publicarse."}
+        )
+
+    estudiante_user = recomendacion.matricula.estudiante.perfil.user
+    destinatarios = []
+    if notificar_estudiante:
+        if not estudiante_user.is_active:
+            raise ValidationError({"notificar_estudiante": "El usuario del estudiante esta inactivo."})
+        destinatarios.append(estudiante_user)
+
+    if notificar_apoderados:
+        apoderados = list(
+            VinculoApoderado.objects.filter(
+                estudiante=recomendacion.matricula.estudiante,
+                apoderado__perfil__user__is_active=True,
+            )
+            .select_related("apoderado__perfil__user")
+            .order_by("-es_principal", "id")
+        )
+        if not apoderados:
+            raise ValidationError(
+                {"notificar_apoderados": "El estudiante no tiene apoderados activos vinculados."}
+            )
+        destinatarios.extend(vinculo.apoderado.perfil.user for vinculo in apoderados)
+
+    ya_notificados = set(
+        Notificacion.objects.filter(
+            recomendacion=recomendacion,
+            destinatario_id__in=[usuario.id for usuario in destinatarios],
+            activo=True,
+        ).values_list("destinatario_id", flat=True)
+    )
+    nuevos = [usuario for usuario in destinatarios if usuario.id not in ya_notificados]
+    if not nuevos:
+        return {"notificaciones": [], "ya_notificados": len(ya_notificados)}
+
+    contenido = parsear_contenido_generado(recomendacion.texto_generado)
+    texto = recomendacion.texto_revisado or _contenido_publicable(contenido)
+    adicional = (mensaje_adicional or "").strip()
+    if adicional:
+        texto = f"{texto}\n\nMensaje adicional del docente:\n{adicional}"
+
+    notificaciones = []
+    for destinatario in nuevos:
+        es_estudiante = destinatario.id == estudiante_user.id
+        ruta = (
+            f"/estudiante/mi-seguimiento?matricula={recomendacion.matricula_id}"
+            if es_estudiante
+            else f"/apoderado/seguimiento?estudiante={recomendacion.matricula.estudiante_id}"
+        )
+        notificaciones.extend(
+            crear_notificaciones_docente(
+                user,
+                destinatarios=[destinatario.id],
+                titulo="Nueva recomendacion pedagogica disponible",
+                mensaje=texto,
+                tipo="RECOMENDACION",
+                prioridad=prioridad,
+                accion_url=ruta,
+                recomendacion=recomendacion,
+                datos_extra={
+                    "recomendacion_id": recomendacion.id,
+                    "matricula_id": recomendacion.matricula_id,
+                    "asignacion_curso_id": recomendacion.asignacion_curso_id,
+                    "periodo_academico_id": recomendacion.periodo_academico_id,
+                },
+            )
+        )
+    return {"notificaciones": notificaciones, "ya_notificados": len(ya_notificados)}
+
+
+def _contenido_publicable(contenido):
+    partes = [contenido.get("resumen", "")]
+    for titulo, clave in (
+        ("Fortalezas", "fortalezas"),
+        ("Aspectos por reforzar", "aspectos_reforzar"),
+        ("Acciones sugeridas", "acciones_estudiante"),
+    ):
+        elementos = contenido.get(clave) or []
+        if elementos:
+            partes.append(f"{titulo}: " + "; ".join(elementos))
+    comunicacion = contenido.get("comunicacion_apoderado")
+    if comunicacion:
+        partes.append("Orientacion para la familia: " + comunicacion)
+    return "\n\n".join(parte for parte in partes if parte)
 
 
 def get_recomendaciones_publicadas(matricula):
@@ -350,17 +453,7 @@ def _solicitar_recomendacion_openai(contexto):
         },
         method="POST",
     )
-    try:
-        with request.urlopen(api_request, timeout=settings.OPENAI_TIMEOUT) as response:
-            data = json.loads(response.read().decode("utf-8"))
-    except error.HTTPError as exc:
-        raise ServicioIAError(_mensaje_error_openai(exc)) from exc
-    except (error.URLError, TimeoutError, socket.timeout) as exc:
-        raise ServicioIAError(
-            "No se pudo conectar con OpenAI o se agoto el tiempo de espera."
-        ) from exc
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise ServicioIAError("OpenAI devolvio una respuesta que no pudo procesarse.") from exc
+    data = _ejecutar_solicitud_openai(api_request)
 
     texto = _extraer_output_text(data)
     try:
@@ -369,6 +462,40 @@ def _solicitar_recomendacion_openai(contexto):
         raise ServicioIAError("OpenAI no devolvio una recomendacion JSON valida.") from exc
     _validar_contenido(contenido)
     return contenido
+
+
+def _ejecutar_solicitud_openai(api_request):
+    max_reintentos = settings.OPENAI_MAX_RETRIES
+    for intento in range(max_reintentos + 1):
+        try:
+            with request.urlopen(api_request, timeout=settings.OPENAI_TIMEOUT) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except error.HTTPError as exc:
+            if _es_error_http_reintentable(exc.code) and intento < max_reintentos:
+                _esperar_reintento(intento)
+                continue
+            raise ServicioIAError(_mensaje_error_openai(exc)) from exc
+        except (error.URLError, TimeoutError, socket.timeout) as exc:
+            if intento < max_reintentos:
+                _esperar_reintento(intento)
+                continue
+            raise ServicioIAError(
+                "No se pudo conectar con OpenAI o se agoto el tiempo de espera."
+            ) from exc
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ServicioIAError(
+                "OpenAI devolvio una respuesta que no pudo procesarse."
+            ) from exc
+
+
+def _es_error_http_reintentable(codigo):
+    return codigo == 429 or codigo >= 500
+
+
+def _esperar_reintento(intento):
+    espera = settings.OPENAI_RETRY_BACKOFF_SECONDS * (2**intento)
+    if espera > 0:
+        time.sleep(espera)
 
 
 def _extraer_output_text(data):

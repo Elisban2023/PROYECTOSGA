@@ -2,9 +2,13 @@ from django.contrib import admin
 
 from .models import (
     AnioAcademico,
+    AccionSeguimiento,
+    ActualizacionAccionSeguimiento,
     Apoderado,
+    ArchivoCloud,
     AsignacionCurso,
     Asistencia,
+    BackupBaseDatos,
     Calificacion,
     Capacidad,
     Competencia,
@@ -18,6 +22,7 @@ from .models import (
     EventoAutenticacion,
     Grado,
     IncidenciaAcademica,
+    JustificacionInasistencia,
     Matricula,
     Notificacion,
     ObservacionAcademica,
@@ -29,6 +34,79 @@ from .models import (
     Seccion,
     VinculoApoderado,
 )
+
+
+class SoloLecturaAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ArchivoCloud)
+class ArchivoCloudAdmin(SoloLecturaAdmin):
+    list_display = ("fecha_creacion", "tipo", "nombre_original", "tamano", "estado", "creado_por")
+    list_filter = ("tipo", "estado", "fecha_creacion")
+    search_fields = ("nombre_original", "sha256", "creado_por__username")
+    readonly_fields = (
+        "tipo",
+        "clave_s3",
+        "nombre_original",
+        "mime_type",
+        "extension",
+        "tamano",
+        "sha256",
+        "creado_por",
+        "estado",
+        "fecha_creacion",
+        "fecha_confirmacion",
+        "fecha_eliminacion",
+    )
+
+
+@admin.register(BackupBaseDatos)
+class BackupBaseDatosAdmin(SoloLecturaAdmin):
+    list_display = ("fecha_creacion", "tipo", "estado", "iniciado_por", "fecha_restauracion")
+    list_filter = ("tipo", "estado", "fecha_creacion")
+    search_fields = ("iniciado_por__username", "archivo__nombre_original")
+    readonly_fields = (
+        "archivo",
+        "tipo",
+        "estado",
+        "iniciado_por",
+        "restaurado_por",
+        "fecha_creacion",
+        "fecha_finalizacion",
+        "fecha_restauracion",
+        "manifiesto",
+        "detalle_error",
+    )
+
+
+@admin.register(JustificacionInasistencia)
+class JustificacionInasistenciaAdmin(SoloLecturaAdmin):
+    list_display = ("fecha_solicitud", "asistencia", "apoderado", "estado", "revisado_por")
+    list_filter = ("estado", "fecha_solicitud")
+    search_fields = (
+        "asistencia__matricula__estudiante__codigo_estudiante",
+        "apoderado__perfil__user__username",
+        "archivo__nombre_original",
+    )
+    readonly_fields = (
+        "asistencia",
+        "apoderado",
+        "archivo",
+        "motivo",
+        "estado",
+        "revisado_por",
+        "comentario_revision",
+        "fecha_solicitud",
+        "fecha_revision",
+    )
 
 
 @admin.register(Perfil)
@@ -355,16 +433,54 @@ class IncidenciaAcademicaAdmin(admin.ModelAdmin):
 
 @admin.register(Notificacion)
 class NotificacionAdmin(admin.ModelAdmin):
-    list_display = ("titulo", "apoderado", "incidencia", "estado_envio", "fecha_envio", "fecha_lectura")
-    list_filter = ("estado_envio", "fecha_envio", "fecha_lectura")
+    list_display = (
+        "titulo",
+        "destinatario",
+        "enviado_por_docente",
+        "tipo",
+        "prioridad",
+        "estado_envio",
+        "creado_en",
+        "fecha_lectura",
+    )
+    list_filter = ("tipo", "prioridad", "estado_envio", "creado_en", "fecha_lectura")
     search_fields = (
         "titulo",
         "mensaje",
+        "destinatario__username",
+        "destinatario__first_name",
+        "destinatario__last_name",
         "apoderado__perfil__user__first_name",
         "apoderado__perfil__user__last_name",
     )
-    autocomplete_fields = ("incidencia", "apoderado")
-    date_hierarchy = "fecha_envio"
+    readonly_fields = (
+        "incidencia",
+        "apoderado",
+        "destinatario",
+        "enviado_por_docente",
+        "tipo",
+        "prioridad",
+        "titulo",
+        "mensaje",
+        "accion_url",
+        "datos",
+        "estado_envio",
+        "fecha_envio",
+        "fecha_lectura",
+        "creado_en",
+        "detalle_error",
+        "activo",
+    )
+    date_hierarchy = "creado_en"
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.method in ("GET", "HEAD", "OPTIONS")
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
 
 @admin.register(CorreoInstitucional)
@@ -439,3 +555,57 @@ class RecomendacionIAAdmin(admin.ModelAdmin):
         "revisado_por_docente",
     )
     date_hierarchy = "fecha_generacion"
+
+
+@admin.register(AccionSeguimiento)
+class AccionSeguimientoAdmin(admin.ModelAdmin):
+    list_display = (
+        "titulo",
+        "matricula",
+        "docente",
+        "tipo",
+        "responsable",
+        "prioridad",
+        "estado",
+        "fecha_limite",
+    )
+    list_filter = ("estado", "prioridad", "tipo", "responsable", "fecha_limite")
+    search_fields = (
+        "titulo",
+        "descripcion",
+        "resultado",
+        "matricula__estudiante__codigo_estudiante",
+        "matricula__estudiante__perfil__user__first_name",
+        "matricula__estudiante__perfil__user__last_name",
+        "docente__perfil__user__first_name",
+        "docente__perfil__user__last_name",
+    )
+    readonly_fields = tuple(field.name for field in AccionSeguimiento._meta.fields)
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.method in ("GET", "HEAD", "OPTIONS")
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(ActualizacionAccionSeguimiento)
+class ActualizacionAccionSeguimientoAdmin(admin.ModelAdmin):
+    list_display = ("accion", "autor", "tipo", "progreso", "creado_en")
+    list_filter = ("tipo", "creado_en")
+    search_fields = ("accion__titulo", "autor__username", "comentario")
+    readonly_fields = tuple(
+        field.name for field in ActualizacionAccionSeguimiento._meta.fields
+    )
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return request.method in ("GET", "HEAD", "OPTIONS")
+
+    def has_delete_permission(self, request, obj=None):
+        return False

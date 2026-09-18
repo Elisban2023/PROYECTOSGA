@@ -1,13 +1,16 @@
 import json
 import re
+from datetime import timedelta
 from unittest.mock import patch
 
 from django.contrib.auth.models import Group, User
 from django.core.cache import cache
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from sga.models import DesafioMFA, EventoAutenticacion, TipoEventoAutenticacion
 from sga.roles import ROLE_ADMIN, ROLE_ESTUDIANTE
@@ -36,6 +39,7 @@ class FakeSendGridResponse:
     PASSWORD_RESET_RESEND_SECONDS=60,
     MFA_CODE_TTL_MINUTES=10,
     MFA_MAX_ATTEMPTS=5,
+    SESSION_IDLE_TIMEOUT_MINUTES=30,
 )
 class SeguridadAutenticacionTests(TestCase):
     def setUp(self):
@@ -70,6 +74,7 @@ class SeguridadAutenticacionTests(TestCase):
         self.assertFalse(respuesta.data["mfa_required"])
         self.assertIn("access", respuesta.data)
         self.assertIn("refresh", respuesta.data)
+        self.assertEqual(respuesta.data["session"]["idle_timeout_seconds"], 1800)
         self.assertTrue(
             EventoAutenticacion.objects.filter(
                 user=self.estudiante,
@@ -179,3 +184,25 @@ class SeguridadAutenticacionTests(TestCase):
 
         self.assertEqual(respuesta.status_code, 200)
         self.assertEqual(BlacklistedToken.objects.count(), 1)
+
+    def test_refresh_mantiene_sesion_activa_y_rechaza_inactividad(self):
+        activo = RefreshToken.for_user(self.estudiante)
+        respuesta_activa = self._post(
+            reverse("token_refresh"),
+            {"refresh": str(activo)},
+        )
+        self.assertEqual(respuesta_activa.status_code, 200)
+        self.assertIn("refresh", respuesta_activa.data)
+        self.assertEqual(
+            respuesta_activa.data["session"]["idle_timeout_seconds"],
+            1800,
+        )
+
+        inactivo = RefreshToken.for_user(self.estudiante)
+        inactivo.set_iat(at_time=timezone.now() - timedelta(minutes=31))
+        respuesta_inactiva = self._post(
+            reverse("token_refresh"),
+            {"refresh": str(inactivo)},
+        )
+        self.assertEqual(respuesta_inactiva.status_code, 401)
+        self.assertIn("inactividad", respuesta_inactiva.data["detail"].lower())

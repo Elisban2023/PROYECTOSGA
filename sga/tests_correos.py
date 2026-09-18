@@ -29,6 +29,7 @@ from sga.models import (
     Grado,
     IncidenciaAcademica,
     Matricula,
+    Notificacion,
     ObservacionAcademica,
     Parentesco,
     Perfil,
@@ -324,6 +325,10 @@ class ComunicacionesDocenteTests(TestCase):
         self.assertEqual(correo.asignacion_curso, self.asignacion)
         self.assertEqual(correo.recomendacion, self.recomendacion)
         self.assertEqual(correo.estado, EstadoCorreo.ENVIADO)
+        self.assertEqual(Notificacion.objects.count(), 1)
+        notificacion = Notificacion.objects.get()
+        self.assertEqual(notificacion.destinatario, self.apoderado.perfil.user)
+        self.assertEqual(notificacion.recomendacion, self.recomendacion)
         self.assertTrue(
             RegistroAuditoria.objects.filter(
                 accion="ENVIAR_COMUNICACION_RECOMENDACION",

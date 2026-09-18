@@ -24,13 +24,14 @@ ADMIN_MENU = [
     },
     {"label": "Matriculas", "path": "/matriculas"},
     {
-        "label": "Seguimiento",
+        "label": "Seguimiento institucional",
         "children": [
             {"label": "Incidencias", "path": "/seguimiento/incidencias"},
             {"label": "Observaciones", "path": "/seguimiento/observaciones"},
             {"label": "Recomendaciones IA", "path": "/seguimiento/recomendaciones-ia"},
         ],
     },
+    {"label": "Notificaciones", "path": "/notificaciones"},
     {"label": "Reportes", "path": "/reportes"},
     {"label": "Auditoria", "path": "/auditoria"},
     {"label": "Configuracion", "path": "/configuracion"},
@@ -46,6 +47,7 @@ ROLE_MENUS = {
         {"label": "Observaciones", "path": "/docente/observaciones"},
         {"label": "Seguimiento estudiantil", "path": "/docente/seguimiento"},
         {"label": "Recomendaciones IA", "path": "/docente/recomendaciones-ia"},
+        {"label": "Notificaciones", "path": "/docente/notificaciones"},
         {"label": "Reportes", "path": "/docente/reportes"},
     ],
     ROLE_ESTUDIANTE: [
@@ -55,6 +57,7 @@ ROLE_MENUS = {
         {"label": "Mis calificaciones", "path": "/estudiante/mis-calificaciones"},
         {"label": "Mi participacion", "path": "/estudiante/mi-participacion"},
         {"label": "Mi seguimiento", "path": "/estudiante/mi-seguimiento"},
+        {"label": "Notificaciones", "path": "/estudiante/notificaciones"},
     ],
     ROLE_APODERADO: [
         {"label": "Dashboard", "path": "/dashboard"},

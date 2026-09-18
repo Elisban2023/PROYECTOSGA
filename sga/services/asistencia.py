@@ -2,9 +2,17 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
-from sga.models import Asistencia, EstadoMatricula, Matricula
+from sga.models import (
+    Asistencia,
+    EstadoAsistencia,
+    EstadoMatricula,
+    Matricula,
+    PrioridadNotificacion,
+    TipoNotificacion,
+)
 
 from .docente import get_asignaciones_docente
+from .notificaciones import crear_notificaciones_docente
 
 
 def get_asistencias_docente(user):
@@ -17,7 +25,7 @@ def get_asistencias_docente(user):
         "matricula__estudiante__perfil__user",
         "asignacion_curso__curso",
         "asignacion_curso__seccion__grado",
-    )
+    ).prefetch_related("sustentos")
 
 
 def registrar_asistencias_docente(user, *, asignacion_curso, fecha, registros):
@@ -60,6 +68,15 @@ def registrar_asistencias_docente(user, *, asignacion_curso, fecha, registros):
     asistencias = []
     with transaction.atomic():
         for registro in registros:
+            estado_anterior = (
+                Asistencia.objects.filter(
+                    matricula=matriculas[registro["matricula"]],
+                    asignacion_curso=asignacion,
+                    fecha=fecha,
+                )
+                .values_list("estado", flat=True)
+                .first()
+            )
             asistencia, creada = Asistencia.objects.update_or_create(
                 matricula=matriculas[registro["matricula"]],
                 asignacion_curso=asignacion,
@@ -71,5 +88,56 @@ def registrar_asistencias_docente(user, *, asignacion_curso, fecha, registros):
             )
             creados += int(creada)
             actualizados += int(not creada)
+            asistencia._debe_notificar = creada or estado_anterior != asistencia.estado
             asistencias.append(asistencia)
     return asignacion, asistencias, creados, actualizados
+
+
+def notificar_asistencias_docente(user, asistencias):
+    generadas = 0
+    for asistencia in asistencias:
+        if not getattr(asistencia, "_debe_notificar", True):
+            continue
+        estudiante = asistencia.matricula.estudiante
+        usuarios = [estudiante.perfil.user]
+        usuarios.extend(
+            vinculo.apoderado.perfil.user
+            for vinculo in estudiante.vinculos_apoderados.select_related(
+                "apoderado__perfil__user"
+            )
+            if vinculo.apoderado.perfil.user.is_active
+        )
+        destinatarios = list(
+            dict.fromkeys(usuario.id for usuario in usuarios if usuario.is_active)
+        )
+        if not destinatarios:
+            continue
+
+        estado_label = asistencia.get_estado_display()
+        curso = asistencia.asignacion_curso.curso.nombre
+        prioridad = (
+            PrioridadNotificacion.ALTA
+            if asistencia.estado in (EstadoAsistencia.FALTA, EstadoAsistencia.TARDE)
+            else PrioridadNotificacion.NORMAL
+        )
+        creadas = crear_notificaciones_docente(
+            user,
+            destinatarios=destinatarios,
+            titulo=f"Asistencia registrada: {estado_label}",
+            mensaje=(
+                f"Se registro la asistencia del {asistencia.fecha.strftime('%d/%m/%Y')} "
+                f"en el curso {curso} con estado {estado_label}."
+            ),
+            tipo=TipoNotificacion.ASISTENCIA,
+            prioridad=prioridad,
+            datos_extra={
+                "asistencia_id": asistencia.id,
+                "matricula_id": asistencia.matricula_id,
+                "asignacion_curso_id": asistencia.asignacion_curso_id,
+                "estado": asistencia.estado,
+                "puede_justificar": asistencia.estado
+                in (EstadoAsistencia.FALTA, EstadoAsistencia.TARDE),
+            },
+        )
+        generadas += len(creadas)
+    return generadas

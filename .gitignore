@@ -9,6 +9,8 @@ db.sqlite3
 htmlcov/
 staticfiles/
 media/
+.codex_tmp/
+outputs/
 *.log
 .DS_Store
 Thumbs.db

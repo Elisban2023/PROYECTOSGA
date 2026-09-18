@@ -10,7 +10,7 @@ from sga.models import (
 
 class CatalogoEvaluacionSerializerMixin:
     def validate_nombre(self, value):
-        value = value.strip()
+        value = " ".join(value.split())
         if len(value) < 3:
             raise serializers.ValidationError(
                 "El nombre debe tener al menos 3 caracteres."
@@ -162,3 +162,13 @@ class CriterioCalificacionSerializer(
                     {"capacidad": "El curso de la capacidad esta inactivo."}
                 )
         return attrs
+
+
+class CrearCriterioDocenteSerializer(CriterioCalificacionSerializer):
+    class Meta:
+        model = CriterioCalificacion
+        fields = (
+            "capacidad",
+            "nombre",
+            "descripcion",
+        )

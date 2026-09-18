@@ -1,6 +1,8 @@
 import json
+import socket
 from datetime import date
-from unittest.mock import patch
+from unittest.mock import call, patch
+from urllib import error
 
 from django.contrib.auth.models import Group, User
 from django.test import TestCase, override_settings
@@ -63,6 +65,8 @@ class FakeOpenAIResponse:
     OPENAI_API_URL="https://api.openai.test/v1/responses",
     OPENAI_TIMEOUT=5,
     OPENAI_MAX_OUTPUT_TOKENS=500,
+    OPENAI_MAX_RETRIES=2,
+    OPENAI_RETRY_BACKOFF_SECONDS=0,
 )
 class RecomendacionesIATests(TestCase):
     def setUp(self):
@@ -219,3 +223,76 @@ class RecomendacionesIATests(TestCase):
         seguimiento = self.client.get("/api/estudiante/mi-seguimiento/")
         self.assertEqual(seguimiento.status_code, 200)
         self.assertEqual(len(seguimiento.data[0]["recomendaciones"]), 1)
+
+    @override_settings(OPENAI_RETRY_BACKOFF_SECONDS=0.25)
+    @patch("sga.services.recomendaciones_docente.time.sleep")
+    @patch("sga.services.recomendaciones_docente.request.urlopen")
+    def test_reintenta_timeout_con_espera_exponencial(self, urlopen, sleep):
+        urlopen.side_effect = [
+            socket.timeout("timeout transitorio"),
+            socket.timeout("segundo timeout"),
+            FakeOpenAIResponse(self.contenido_ia),
+        ]
+        self.client.force_authenticate(self.docente_user)
+
+        response = self.client.post(
+            "/api/docente/recomendaciones-ia/generar/",
+            {
+                "matricula": self.matricula.id,
+                "asignacion_curso": self.asignacion.id,
+                "periodo_academico": self.periodo.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(urlopen.call_count, 3)
+        self.assertEqual(sleep.call_args_list, [call(0.25), call(0.5)])
+
+    @patch("sga.services.recomendaciones_docente.request.urlopen")
+    def test_reintenta_error_503_hasta_agotar_limite(self, urlopen):
+        urlopen.side_effect = error.HTTPError(
+            "https://api.openai.test/v1/responses",
+            503,
+            "Service unavailable",
+            None,
+            None,
+        )
+        self.client.force_authenticate(self.docente_user)
+
+        response = self.client.post(
+            "/api/docente/recomendaciones-ia/generar/",
+            {
+                "matricula": self.matricula.id,
+                "asignacion_curso": self.asignacion.id,
+                "periodo_academico": self.periodo.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(urlopen.call_count, 3)
+
+    @patch("sga.services.recomendaciones_docente.request.urlopen")
+    def test_no_reintenta_error_401(self, urlopen):
+        urlopen.side_effect = error.HTTPError(
+            "https://api.openai.test/v1/responses",
+            401,
+            "Unauthorized",
+            None,
+            None,
+        )
+        self.client.force_authenticate(self.docente_user)
+
+        response = self.client.post(
+            "/api/docente/recomendaciones-ia/generar/",
+            {
+                "matricula": self.matricula.id,
+                "asignacion_curso": self.asignacion.id,
+                "periodo_academico": self.periodo.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(urlopen.call_count, 1)

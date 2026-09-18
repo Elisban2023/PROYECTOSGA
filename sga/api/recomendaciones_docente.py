@@ -1,4 +1,4 @@
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from rest_framework import serializers, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import ValidationError
@@ -6,11 +6,17 @@ from rest_framework.response import Response
 
 from sga.models import EstadoRevisionIA, RegistroAuditoria
 from sga.permissions import IsDocente
-from sga.serializers import RecomendacionIARevisionSerializer, RecomendacionIASerializer
+from sga.serializers import (
+    NotificacionSerializer,
+    RecomendacionIAPublicacionSerializer,
+    RecomendacionIARevisionSerializer,
+    RecomendacionIASerializer,
+)
 from sga.services.recomendaciones_docente import (
     generar_recomendacion_docente,
     get_recomendacion_docente,
     get_recomendaciones_docente,
+    publicar_recomendacion_docente,
     revisar_recomendacion_docente,
 )
 
@@ -128,3 +134,44 @@ def revisar_recomendacion(request, recomendacion_id):
         entidad_id=str(recomendacion.id),
     )
     return Response(RecomendacionIASerializer(recomendacion).data)
+
+
+@extend_schema(
+    request=RecomendacionIAPublicacionSerializer,
+    responses={200: OpenApiTypes.OBJECT, 201: OpenApiTypes.OBJECT},
+)
+@api_view(["POST"])
+@permission_classes([IsDocente])
+def publicar_recomendacion(request, recomendacion_id):
+    serializer = RecomendacionIAPublicacionSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    resultado = publicar_recomendacion_docente(
+        request.user,
+        recomendacion_id=recomendacion_id,
+        **serializer.validated_data,
+    )
+    notificaciones = resultado["notificaciones"]
+    for notificacion in notificaciones:
+        RegistroAuditoria.registrar_evento(
+            user=request.user,
+            accion="PUBLICAR_RECOMENDACION_IA",
+            modulo="docente",
+            entidad="Notificacion",
+            entidad_id=str(notificacion.id),
+        )
+    enviadas = sum(item.estado_envio == "ENVIADA" for item in notificaciones)
+    fallidas = sum(item.estado_envio == "FALLIDA" for item in notificaciones)
+    respuesta = {
+        "detail": (
+            "Recomendacion publicada."
+            if notificaciones
+            else "Los destinatarios seleccionados ya fueron notificados."
+        ),
+        "creadas": len(notificaciones),
+        "ya_notificados": resultado["ya_notificados"],
+        "correos_enviados": enviadas,
+        "correos_fallidos": fallidas,
+        "results": NotificacionSerializer(notificaciones, many=True).data,
+    }
+    codigo = status.HTTP_201_CREATED if notificaciones else status.HTTP_200_OK
+    return Response(respuesta, status=codigo)

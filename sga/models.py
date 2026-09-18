@@ -39,6 +39,41 @@ class EstadoAsistencia(models.TextChoices):
     JUSTIFICADA = "JUSTIFICADA", "Justificada"
 
 
+class TipoArchivoCloud(models.TextChoices):
+    JUSTIFICACION = "JUSTIFICACION", "Justificacion de inasistencia"
+    BACKUP = "BACKUP", "Respaldo de base de datos"
+
+
+class EstadoArchivoCloud(models.TextChoices):
+    PENDIENTE = "PENDIENTE", "Pendiente de carga"
+    DISPONIBLE = "DISPONIBLE", "Disponible"
+    ERROR = "ERROR", "Error"
+    ELIMINADO = "ELIMINADO", "Eliminado logicamente"
+
+
+class EstadoJustificacion(models.TextChoices):
+    PENDIENTE_CARGA = "PENDIENTE_CARGA", "Pendiente de carga"
+    PENDIENTE_REVISION = "PENDIENTE_REVISION", "Pendiente de revision"
+    APROBADA = "APROBADA", "Aprobada"
+    RECHAZADA = "RECHAZADA", "Rechazada"
+    ELIMINADA = "ELIMINADA", "Eliminada logicamente"
+
+
+class TipoBackup(models.TextChoices):
+    MANUAL = "MANUAL", "Manual"
+    AUTOMATICO = "AUTOMATICO", "Automatico"
+    PRE_RESTAURACION = "PRE_RESTAURACION", "Previo a restauracion"
+
+
+class EstadoBackup(models.TextChoices):
+    PROCESANDO = "PROCESANDO", "Procesando"
+    DISPONIBLE = "DISPONIBLE", "Disponible"
+    RESTAURANDO = "RESTAURANDO", "Restaurando"
+    RESTAURADO = "RESTAURADO", "Restaurado"
+    ERROR = "ERROR", "Error"
+    ELIMINADO = "ELIMINADO", "Eliminado logicamente"
+
+
 class NivelLogro(models.TextChoices):
     AD = "AD", "Logro destacado"
     A = "A", "Logro esperado"
@@ -86,6 +121,22 @@ class EstadoEnvio(models.TextChoices):
     LEIDA = "LEIDA", "Leida"
 
 
+class TipoNotificacion(models.TextChoices):
+    ACADEMICA = "ACADEMICA", "Academica"
+    ASISTENCIA = "ASISTENCIA", "Asistencia"
+    CALIFICACION = "CALIFICACION", "Calificacion"
+    INCIDENCIA = "INCIDENCIA", "Incidencia"
+    RECOMENDACION = "RECOMENDACION", "Recomendacion"
+    INSTITUCIONAL = "INSTITUCIONAL", "Institucional"
+
+
+class PrioridadNotificacion(models.TextChoices):
+    BAJA = "BAJA", "Baja"
+    NORMAL = "NORMAL", "Normal"
+    ALTA = "ALTA", "Alta"
+    URGENTE = "URGENTE", "Urgente"
+
+
 class EstadoCorreo(models.TextChoices):
     PENDIENTE = "PENDIENTE", "Pendiente"
     ENVIADO = "ENVIADO", "Enviado"
@@ -119,6 +170,35 @@ class EstadoRevisionIA(models.TextChoices):
     APROBADA = "APROBADA", "Aprobada"
     RECHAZADA = "RECHAZADA", "Rechazada"
     EDITADA = "EDITADA", "Editada"
+
+
+class TipoAccionSeguimiento(models.TextChoices):
+    REFUERZO = "REFUERZO", "Refuerzo academico"
+    TUTORIA = "TUTORIA", "Tutoria"
+    RECUPERACION = "RECUPERACION", "Actividad de recuperacion"
+    COMPROMISO = "COMPROMISO", "Compromiso del estudiante"
+    COMUNICACION_FAMILIA = "COMUNICACION_FAMILIA", "Comunicacion con la familia"
+    OTRO = "OTRO", "Otro"
+
+
+class ResponsableAccionSeguimiento(models.TextChoices):
+    DOCENTE = "DOCENTE", "Docente"
+    ESTUDIANTE = "ESTUDIANTE", "Estudiante"
+    APODERADO = "APODERADO", "Apoderado"
+    COMPARTIDA = "COMPARTIDA", "Responsabilidad compartida"
+
+
+class EstadoAccionSeguimiento(models.TextChoices):
+    PENDIENTE = "PENDIENTE", "Pendiente"
+    EN_PROGRESO = "EN_PROGRESO", "En progreso"
+    COMPLETADA = "COMPLETADA", "Completada"
+    CANCELADA = "CANCELADA", "Cancelada"
+
+
+class TipoActualizacionSeguimiento(models.TextChoices):
+    COMENTARIO = "COMENTARIO", "Comentario"
+    AVANCE = "AVANCE", "Avance"
+    EVIDENCIA = "EVIDENCIA", "Evidencia"
 
 # ============================================================
 # USUARIOS Y PERFILES DEL SGA
@@ -710,6 +790,80 @@ class Matricula(models.Model):
 # REGISTROS ACADÉMICOS
 # ============================================================
 
+class ArchivoCloud(models.Model):
+    tipo = models.CharField(max_length=30, choices=TipoArchivoCloud.choices)
+    clave_s3 = models.CharField(max_length=255, unique=True)
+    nombre_original = models.CharField(max_length=255)
+    mime_type = models.CharField(max_length=100)
+    extension = models.CharField(max_length=15)
+    tamano = models.PositiveBigIntegerField()
+    sha256 = models.CharField(max_length=64, null=True, blank=True)
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="archivos_cloud_creados",
+    )
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoArchivoCloud.choices,
+        default=EstadoArchivoCloud.PENDIENTE,
+    )
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_confirmacion = models.DateTimeField(null=True, blank=True)
+    fecha_eliminacion = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.tipo} - {self.nombre_original} - {self.estado}"
+
+    class Meta:
+        ordering = ("-fecha_creacion", "-id")
+        indexes = [models.Index(fields=("tipo", "estado", "fecha_creacion"))]
+
+
+class BackupBaseDatos(models.Model):
+    archivo = models.OneToOneField(
+        ArchivoCloud,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="backup_base_datos",
+    )
+    tipo = models.CharField(max_length=30, choices=TipoBackup.choices)
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoBackup.choices,
+        default=EstadoBackup.PROCESANDO,
+    )
+    iniciado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="backups_iniciados",
+    )
+    restaurado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="backups_restaurados",
+    )
+    fecha_creacion = models.DateTimeField(default=timezone.now)
+    fecha_finalizacion = models.DateTimeField(null=True, blank=True)
+    fecha_restauracion = models.DateTimeField(null=True, blank=True)
+    manifiesto = models.JSONField(default=dict, blank=True)
+    detalle_error = models.CharField(max_length=500, null=True, blank=True)
+
+    def __str__(self):
+        return f"Backup {self.id or 'nuevo'} - {self.tipo} - {self.estado}"
+
+    class Meta:
+        ordering = ("-fecha_creacion", "-id")
+        indexes = [models.Index(fields=("estado", "fecha_creacion"))]
+
+
 class Asistencia(models.Model):
     matricula = models.ForeignKey(
         Matricula,
@@ -768,6 +922,50 @@ class Asistencia(models.Model):
                 fields=["matricula", "asignacion_curso", "fecha"],
                 name="unique_asistencia_matricula_curso_fecha",
             )
+        ]
+
+
+class JustificacionInasistencia(models.Model):
+    asistencia = models.ForeignKey(
+        Asistencia,
+        on_delete=models.PROTECT,
+        related_name="sustentos",
+    )
+    apoderado = models.ForeignKey(
+        Apoderado,
+        on_delete=models.PROTECT,
+        related_name="justificaciones_inasistencia",
+    )
+    archivo = models.OneToOneField(
+        ArchivoCloud,
+        on_delete=models.PROTECT,
+        related_name="justificacion_inasistencia",
+    )
+    motivo = models.TextField()
+    estado = models.CharField(
+        max_length=30,
+        choices=EstadoJustificacion.choices,
+        default=EstadoJustificacion.PENDIENTE_CARGA,
+    )
+    revisado_por = models.ForeignKey(
+        Docente,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="justificaciones_revisadas",
+    )
+    comentario_revision = models.CharField(max_length=500, null=True, blank=True)
+    fecha_solicitud = models.DateTimeField(default=timezone.now)
+    fecha_revision = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.asistencia} - {self.estado}"
+
+    class Meta:
+        ordering = ("-fecha_solicitud", "-id")
+        indexes = [
+            models.Index(fields=("apoderado", "estado")),
+            models.Index(fields=("asistencia", "estado")),
         ]
 
 
@@ -1056,15 +1254,52 @@ class Notificacion(models.Model):
     incidencia = models.ForeignKey(
         IncidenciaAcademica,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="notificaciones",
     )
     apoderado = models.ForeignKey(
         Apoderado,
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="notificaciones",
+    )
+    destinatario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="notificaciones_recibidas",
+    )
+    enviado_por_docente = models.ForeignKey(
+        Docente,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="notificaciones_enviadas",
+    )
+    recomendacion = models.ForeignKey(
+        "RecomendacionIA",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="notificaciones",
+    )
+    tipo = models.CharField(
+        max_length=30,
+        choices=TipoNotificacion.choices,
+        default=TipoNotificacion.ACADEMICA,
+    )
+    prioridad = models.CharField(
+        max_length=20,
+        choices=PrioridadNotificacion.choices,
+        default=PrioridadNotificacion.NORMAL,
     )
     titulo = models.CharField(max_length=200)
     mensaje = models.TextField()
+    accion_url = models.CharField(max_length=500, null=True, blank=True)
+    datos = models.JSONField(default=dict, blank=True)
     estado_envio = models.CharField(
         max_length=30,
         choices=EstadoEnvio.choices,
@@ -1078,6 +1313,8 @@ class Notificacion(models.Model):
         null=True,
         blank=True,
     )
+    creado_en = models.DateTimeField(default=timezone.now)
+    detalle_error = models.CharField(max_length=250, null=True, blank=True)
     activo = models.BooleanField(default=True)
 
     def registrar_envio(self, estado_envio, fecha_envio=None):
@@ -1092,8 +1329,11 @@ class Notificacion(models.Model):
         self.save(update_fields=["fecha_lectura"])
 
     def __str__(self):
+        destinatario = self.destinatario or (
+            self.apoderado.perfil.user if self.apoderado_id else None
+        )
         return (
-            f"{self.apoderado} - "
+            f"{destinatario or 'Sin destinatario'} - "
             f"{self.titulo} - {self.estado_envio}"
         )
 
@@ -1184,6 +1424,107 @@ class RecomendacionIA(models.Model):
             f"{self.estado_revision} - "
             f"{self.fecha_generacion:%Y-%m-%d}"
         )
+
+
+class AccionSeguimiento(models.Model):
+    matricula = models.ForeignKey(
+        Matricula,
+        on_delete=models.PROTECT,
+        related_name="acciones_seguimiento",
+    )
+    asignacion_curso = models.ForeignKey(
+        AsignacionCurso,
+        on_delete=models.PROTECT,
+        related_name="acciones_seguimiento",
+    )
+    periodo_academico = models.ForeignKey(
+        PeriodoAcademico,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="acciones_seguimiento",
+    )
+    docente = models.ForeignKey(
+        Docente,
+        on_delete=models.PROTECT,
+        related_name="acciones_seguimiento",
+    )
+    incidencia = models.ForeignKey(
+        IncidenciaAcademica,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="acciones_seguimiento",
+    )
+    recomendacion = models.ForeignKey(
+        RecomendacionIA,
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
+        related_name="acciones_seguimiento",
+    )
+    tipo = models.CharField(max_length=30, choices=TipoAccionSeguimiento.choices)
+    responsable = models.CharField(
+        max_length=20,
+        choices=ResponsableAccionSeguimiento.choices,
+    )
+    prioridad = models.CharField(
+        max_length=20,
+        choices=PrioridadNotificacion.choices,
+        default=PrioridadNotificacion.NORMAL,
+    )
+    titulo = models.CharField(max_length=150)
+    descripcion = models.TextField()
+    estado = models.CharField(
+        max_length=20,
+        choices=EstadoAccionSeguimiento.choices,
+        default=EstadoAccionSeguimiento.PENDIENTE,
+    )
+    fecha_limite = models.DateField(null=True, blank=True)
+    fecha_completada = models.DateTimeField(null=True, blank=True)
+    resultado = models.TextField(null=True, blank=True)
+    visible_estudiante = models.BooleanField(default=True)
+    visible_apoderado = models.BooleanField(default=True)
+    activo = models.BooleanField(default=True)
+    creado_en = models.DateTimeField(default=timezone.now)
+    actualizado_en = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.matricula.estudiante} - {self.titulo} - {self.estado}"
+
+    class Meta:
+        ordering = ("estado", "fecha_limite", "-creado_en")
+        indexes = [
+            models.Index(fields=("docente", "estado", "fecha_limite")),
+            models.Index(fields=("matricula", "estado")),
+        ]
+
+
+class ActualizacionAccionSeguimiento(models.Model):
+    accion = models.ForeignKey(
+        AccionSeguimiento,
+        on_delete=models.CASCADE,
+        related_name="actualizaciones",
+    )
+    autor = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.PROTECT,
+        related_name="actualizaciones_seguimiento",
+    )
+    tipo = models.CharField(
+        max_length=20,
+        choices=TipoActualizacionSeguimiento.choices,
+        default=TipoActualizacionSeguimiento.COMENTARIO,
+    )
+    comentario = models.TextField()
+    progreso = models.PositiveSmallIntegerField(null=True, blank=True)
+    creado_en = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"{self.accion_id} - {self.autor} - {self.tipo}"
+
+    class Meta:
+        ordering = ("creado_en", "id")
 
 
 class CorreoInstitucional(models.Model):

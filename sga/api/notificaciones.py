@@ -1,20 +1,16 @@
-from rest_framework.decorators import action
-from rest_framework.response import Response
+from rest_framework import viewsets
 
-from sga.models import EstadoEnvio, Notificacion
-from sga.serializers import NotificacionSerializer, NotificacionEstadoSerializer
-from sga.services.notificaciones import enviar_notificacion, marcar_como_leida
-
-from .base import AdminCatalogViewSet
+from sga.models import Notificacion
+from sga.permissions import IsAdminOrDirectivo
+from sga.serializers import NotificacionSerializer
 
 
-class NotificacionViewSet(AdminCatalogViewSet):
-    logical_delete_field = "activo"
-    logical_delete_value = False
-    logical_delete_message = "Notificacion desactivada correctamente."
+class NotificacionViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = (IsAdminOrDirectivo,)
     queryset = Notificacion.objects.select_related(
         "incidencia__matricula__estudiante__perfil__user",
         "incidencia__matricula__seccion__grado",
+        "recomendacion__matricula__estudiante__perfil__user",
         "apoderado__perfil__user",
     ).order_by("-id")
     serializer_class = NotificacionSerializer
@@ -48,24 +44,3 @@ class NotificacionViewSet(AdminCatalogViewSet):
             if value:
                 queryset = queryset.filter(**{field: value})
         return queryset
-
-    def perform_create(self, serializer):
-        notificacion = serializer.save(estado_envio=EstadoEnvio.PENDIENTE)
-        enviar_notificacion(notificacion)
-        self.registrar_auditoria("CREAR", notificacion)
-
-    @action(detail=True, methods=["post"], url_path="reenviar")
-    def reenviar(self, request, pk=None):
-        notificacion = self.get_object()
-        notificacion.estado_envio = EstadoEnvio.PENDIENTE
-        notificacion.fecha_envio = None
-        notificacion.save(update_fields=["estado_envio", "fecha_envio"])
-        enviar_notificacion(notificacion)
-        self.registrar_auditoria("REENVIAR_NOTIFICACION", notificacion)
-        return Response(NotificacionEstadoSerializer(notificacion).data)
-
-    @action(detail=True, methods=["post"], url_path="marcar-leida")
-    def marcar_leida(self, request, pk=None):
-        notificacion = marcar_como_leida(self.get_object())
-        self.registrar_auditoria("MARCAR_NOTIFICACION_LEIDA", notificacion)
-        return Response(NotificacionEstadoSerializer(notificacion).data)

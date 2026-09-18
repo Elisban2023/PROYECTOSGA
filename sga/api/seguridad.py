@@ -20,6 +20,7 @@ from sga.serializers.seguridad import (
     RecuperarPasswordConfirmarSerializer,
     RecuperarPasswordSolicitudSerializer,
     RecuperarPasswordTokenSerializer,
+    TokenRefreshInactividadSerializer,
 )
 from sga.services.correos import CorreoError
 from sga.services.seguridad import (
@@ -35,6 +36,7 @@ from sga.services.seguridad import (
 
 
 class TokenRefreshSeguroView(TokenRefreshView):
+    serializer_class = TokenRefreshInactividadSerializer
     throttle_classes = (ScopedRateThrottle,)
     throttle_scope = "token_refresh"
 

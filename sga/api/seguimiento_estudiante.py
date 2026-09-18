@@ -3,7 +3,7 @@ from drf_spectacular.utils import OpenApiTypes, extend_schema
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 
-from sga.models import Asistencia, Calificacion, IncidenciaAcademica, ObservacionAcademica, Participacion
+from sga.models import AccionSeguimiento, Asistencia, Calificacion, IncidenciaAcademica, ObservacionAcademica, Participacion
 from sga.permissions import IsEstudiante
 from sga.services.estudiante import get_matriculas_estudiante
 from sga.services.recomendaciones_docente import get_recomendaciones_publicadas
@@ -30,5 +30,22 @@ def mi_seguimiento(request):
             "observaciones": list(ObservacionAcademica.objects.filter(matricula=matricula, activo=True).order_by("-fecha").values("id", "fecha", "categoria", "descripcion")[:10]),
             "incidencias": list(IncidenciaAcademica.objects.filter(matricula=matricula).order_by("-fecha_registro").values("id", "tipo", "nivel", "estado", "descripcion", "fecha_registro")[:10]),
             "recomendaciones": get_recomendaciones_publicadas(matricula),
+            "acciones_seguimiento": list(
+                AccionSeguimiento.objects.filter(
+                    matricula=matricula,
+                    visible_estudiante=True,
+                    activo=True,
+                ).values(
+                    "id",
+                    "tipo",
+                    "responsable",
+                    "prioridad",
+                    "titulo",
+                    "descripcion",
+                    "estado",
+                    "fecha_limite",
+                    "resultado",
+                )[:20]
+            ),
         })
     return Response(resultado)

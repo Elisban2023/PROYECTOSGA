@@ -9,6 +9,7 @@ from .academico import (
 from .evaluacion import (
     CapacidadSerializer,
     CompetenciaSerializer,
+    CrearCriterioDocenteSerializer,
     CriterioCalificacionSerializer,
 )
 from .docente import DocenteCursoSerializer, DocenteEstudianteCursoSerializer
@@ -46,11 +47,31 @@ from .seguimiento import (
     IncidenciaAcademicaSerializer,
     ObservacionAcademicaSerializer,
     RecomendacionIARevisionSerializer,
+    RecomendacionIAPublicacionSerializer,
     RecomendacionIASerializer,
 )
-from .notificaciones import NotificacionEstadoSerializer, NotificacionSerializer
+from .notificaciones import (
+    DestinatarioNotificacionSerializer,
+    EnviarNotificacionSerializer,
+    NotificacionEstadoSerializer,
+    NotificacionSerializer,
+)
 from .correos import CorreoInstitucionalSerializer, CorreoSolicitudSerializer
 from .comunicaciones_docente import ComunicacionDocenteSolicitudSerializer
+from .dashboard import DashboardFiltrosSerializer
+from .seguimiento_admin import (
+    SeguimientoDocenteDetalleSerializer,
+    SeguimientoDocenteResumenSerializer,
+)
 
 from .auditoria import RegistroAuditoriaSerializer
+from .archivos_cloud import (
+    BackupBaseDatosSerializer,
+    ConfirmarCargaSerializer,
+    CrearBackupSerializer,
+    JustificacionInasistenciaSerializer,
+    RestaurarBackupSerializer,
+    RevisarJustificacionSerializer,
+    SolicitarCargaJustificacionSerializer,
+)
 from .configuracion import ConfiguracionInstitucionalSerializer

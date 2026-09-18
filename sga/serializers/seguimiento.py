@@ -10,6 +10,7 @@ from sga.models import (
     IncidenciaAcademica,
     ObservacionAcademica,
     RecomendacionIA,
+    PrioridadNotificacion,
 )
 
 
@@ -307,5 +308,27 @@ class RecomendacionIARevisionSerializer(serializers.Serializer):
         ):
             raise serializers.ValidationError(
                 {"texto_revisado": "Debe registrar el texto revisado."}
+            )
+        return attrs
+
+
+class RecomendacionIAPublicacionSerializer(serializers.Serializer):
+    notificar_estudiante = serializers.BooleanField(default=True)
+    notificar_apoderados = serializers.BooleanField(default=False)
+    prioridad = serializers.ChoiceField(
+        choices=PrioridadNotificacion.choices,
+        default=PrioridadNotificacion.NORMAL,
+    )
+    mensaje_adicional = serializers.CharField(
+        required=False,
+        allow_blank=True,
+        max_length=500,
+        trim_whitespace=True,
+    )
+
+    def validate(self, attrs):
+        if not attrs["notificar_estudiante"] and not attrs["notificar_apoderados"]:
+            raise serializers.ValidationError(
+                "Seleccione al estudiante, a sus apoderados o ambos."
             )
         return attrs

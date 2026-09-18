@@ -1,12 +1,15 @@
 from collections import defaultdict
 
 from django.db.models import Count, Q
+from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
 from sga.models import (
+    AccionSeguimiento,
     Asistencia,
     Calificacion,
     EstadoIncidencia,
+    EstadoAccionSeguimiento,
     EstadoMatricula,
     IncidenciaAcademica,
     Matricula,
@@ -70,10 +73,53 @@ def _resumenes(user, asignacion_curso=None):
     incidencias = _counts(
         IncidenciaAcademica.objects.filter(matricula_id__in=matricula_ids, observacion__asignacion_curso_id__in=asignacion_ids, observacion__docente_id=docente_id, estado__in=(EstadoIncidencia.ABIERTA, EstadoIncidencia.EN_SEGUIMIENTO)), total=Count("id")
     )
+    acciones = {
+        row["matricula_id"]: row
+        for row in AccionSeguimiento.objects.filter(
+            matricula_id__in=matricula_ids,
+            asignacion_curso_id__in=asignacion_ids,
+            docente_id=docente_id,
+            activo=True,
+        )
+        .values("matricula_id")
+        .annotate(
+            pendientes=Count(
+                "id",
+                filter=Q(
+                    estado__in=(
+                        EstadoAccionSeguimiento.PENDIENTE,
+                        EstadoAccionSeguimiento.EN_PROGRESO,
+                    )
+                ),
+            ),
+            vencidas=Count(
+                "id",
+                filter=Q(
+                    fecha_limite__lt=timezone.localdate(),
+                    estado__in=(
+                        EstadoAccionSeguimiento.PENDIENTE,
+                        EstadoAccionSeguimiento.EN_PROGRESO,
+                    ),
+                ),
+            ),
+            completadas=Count(
+                "id",
+                filter=Q(estado=EstadoAccionSeguimiento.COMPLETADA),
+            ),
+        )
+    }
     resultado = []
     for matricula in matriculas:
         asistencia = asistencias.get(matricula.id, {"total": 0, "presentes": 0, "faltas": 0})
         total = asistencia["total"]
+        calificacion = calificaciones[matricula.id]
+        incidencias_abiertas = incidencias.get(matricula.id, {"total": 0})["total"]
+        porcentaje = round(asistencia["presentes"] * 100 / total, 2) if total else None
+        senales, nivel_atencion = _evaluar_senales(
+            porcentaje_asistencia=porcentaje,
+            calificaciones=calificacion,
+            incidencias_abiertas=incidencias_abiertas,
+        )
         resultado.append({
             "matricula_id": matricula.id,
             "estudiante_id": matricula.estudiante_id,
@@ -82,11 +128,17 @@ def _resumenes(user, asignacion_curso=None):
             "grado_nombre": matricula.seccion.grado.nombre,
             "seccion_nombre": matricula.seccion.nombre,
             "anio_academico": matricula.anio_academico.anio,
-            "asistencias": {"total": total, "presentes": asistencia["presentes"], "faltas": asistencia["faltas"], "porcentaje": round(asistencia["presentes"] * 100 / total, 2) if total else None},
-            "calificaciones": calificaciones[matricula.id],
+            "asistencias": {"total": total, "presentes": asistencia["presentes"], "faltas": asistencia["faltas"], "porcentaje": porcentaje},
+            "calificaciones": calificacion,
             "participaciones": participaciones.get(matricula.id, {"total": 0})["total"],
             "observaciones": observaciones.get(matricula.id, {"total": 0})["total"],
-            "incidencias_abiertas": incidencias.get(matricula.id, {"total": 0})["total"],
+            "incidencias_abiertas": incidencias_abiertas,
+            "nivel_atencion": nivel_atencion,
+            "senales": senales,
+            "acciones": acciones.get(
+                matricula.id,
+                {"pendientes": 0, "vencidas": 0, "completadas": 0},
+            ),
         })
     return resultado, asignacion_ids
 
@@ -107,4 +159,78 @@ def get_detalle_seguimiento_docente(user, *, matricula_id, asignacion_curso=None
     resultado["ultimas_participaciones"] = list(Participacion.objects.filter(matricula_id=matricula_id, asignacion_curso_id__in=asignacion_ids).order_by("-fecha").values("id", "fecha", "tipo", "valor", "observacion")[:10])
     resultado["ultimas_observaciones"] = list(ObservacionAcademica.objects.filter(matricula_id=matricula_id, asignacion_curso_id__in=asignacion_ids, docente_id=docente_id, activo=True).order_by("-fecha").values("id", "fecha", "categoria", "descripcion")[:10])
     resultado["incidencias_abiertas_detalle"] = list(IncidenciaAcademica.objects.filter(matricula_id=matricula_id, observacion__asignacion_curso_id__in=asignacion_ids, observacion__docente_id=docente_id, estado__in=(EstadoIncidencia.ABIERTA, EstadoIncidencia.EN_SEGUIMIENTO)).order_by("-fecha_registro").values("id", "tipo", "nivel", "estado", "descripcion", "fecha_registro")[:10])
+    resultado["acciones_seguimiento_detalle"] = list(
+        AccionSeguimiento.objects.filter(
+            matricula_id=matricula_id,
+            asignacion_curso_id__in=asignacion_ids,
+            docente_id=docente_id,
+            activo=True,
+        )
+        .order_by("estado", "fecha_limite", "-creado_en")
+        .values(
+            "id",
+            "tipo",
+            "responsable",
+            "prioridad",
+            "titulo",
+            "estado",
+            "fecha_limite",
+            "fecha_completada",
+            "resultado",
+        )[:20]
+    )
     return resultado
+
+
+def _evaluar_senales(*, porcentaje_asistencia, calificaciones, incidencias_abiertas):
+    senales = []
+    nivel = "NORMAL"
+    if porcentaje_asistencia is not None and porcentaje_asistencia < 70:
+        senales.append({
+            "codigo": "ASISTENCIA_CRITICA",
+            "nivel": "PRIORITARIO",
+            "mensaje": "La asistencia es menor al 70%.",
+        })
+        nivel = "PRIORITARIO"
+    elif porcentaje_asistencia is not None and porcentaje_asistencia < 85:
+        senales.append({
+            "codigo": "ASISTENCIA_POR_REFORZAR",
+            "nivel": "OBSERVAR",
+            "mensaje": "La asistencia es menor al 85%.",
+        })
+        nivel = "OBSERVAR"
+
+    total_calificaciones = calificaciones["total"]
+    total_c = calificaciones["C"]
+    if total_calificaciones and total_c / total_calificaciones >= 0.5:
+        senales.append({
+            "codigo": "LOGRO_INICIAL_REITERADO",
+            "nivel": "PRIORITARIO",
+            "mensaje": "La mitad o mas de las calificaciones se encuentra en nivel C.",
+        })
+        nivel = "PRIORITARIO"
+    elif total_c:
+        senales.append({
+            "codigo": "LOGRO_INICIAL",
+            "nivel": "OBSERVAR",
+            "mensaje": "Tiene calificaciones en nivel C que requieren seguimiento.",
+        })
+        if nivel == "NORMAL":
+            nivel = "OBSERVAR"
+
+    if incidencias_abiertas >= 2:
+        senales.append({
+            "codigo": "INCIDENCIAS_REITERADAS",
+            "nivel": "PRIORITARIO",
+            "mensaje": "Tiene dos o mas incidencias pendientes de cierre.",
+        })
+        nivel = "PRIORITARIO"
+    elif incidencias_abiertas == 1:
+        senales.append({
+            "codigo": "INCIDENCIA_ABIERTA",
+            "nivel": "OBSERVAR",
+            "mensaje": "Tiene una incidencia pendiente de seguimiento.",
+        })
+        if nivel == "NORMAL":
+            nivel = "OBSERVAR"
+    return senales, nivel

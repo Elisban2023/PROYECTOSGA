@@ -17,7 +17,7 @@ def mi_asistencia(request):
     matricula_ids = [matricula.id for matricula in get_matriculas_estudiante(request.user)]
     queryset = Asistencia.objects.filter(matricula_id__in=matricula_ids).select_related(
         "matricula__estudiante__perfil__user", "asignacion_curso__curso", "asignacion_curso__seccion__grado"
-    ).order_by("-fecha", "asignacion_curso__curso__nombre")
+    ).prefetch_related("sustentos").order_by("-fecha", "asignacion_curso__curso__nombre")
     for param, lookup in {"asignacion_curso": "asignacion_curso_id", "anio_academico": "asignacion_curso__anio_academico_id"}.items():
         value = request.query_params.get(param)
         if value is not None:

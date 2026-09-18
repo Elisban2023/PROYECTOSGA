@@ -149,6 +149,9 @@ SENDGRID_TIMEOUT = int(os.environ.get("SENDGRID_TIMEOUT", "15"))
 FRONTEND_URL = os.environ.get("FRONTEND_URL", "http://localhost:5173").rstrip("/")
 MFA_CODE_TTL_MINUTES = int(os.environ.get("MFA_CODE_TTL_MINUTES", "10"))
 MFA_MAX_ATTEMPTS = int(os.environ.get("MFA_MAX_ATTEMPTS", "5"))
+SESSION_IDLE_TIMEOUT_MINUTES = int(
+    os.environ.get("SESSION_IDLE_TIMEOUT_MINUTES", "30")
+)
 PASSWORD_RESET_TIMEOUT = int(os.environ.get("PASSWORD_RESET_TIMEOUT", "1800"))
 PASSWORD_RESET_RESEND_SECONDS = int(os.environ.get("PASSWORD_RESET_RESEND_SECONDS", "60"))
 PASSWORD_RESET_FRONTEND_PATH = os.environ.get(
@@ -170,6 +173,36 @@ OPENAI_API_URL = os.environ.get(
 )
 OPENAI_TIMEOUT = int(os.environ.get("OPENAI_TIMEOUT", "45"))
 OPENAI_MAX_OUTPUT_TOKENS = int(os.environ.get("OPENAI_MAX_OUTPUT_TOKENS", "1200"))
+OPENAI_MAX_RETRIES = max(0, int(os.environ.get("OPENAI_MAX_RETRIES", "2")))
+OPENAI_RETRY_BACKOFF_SECONDS = max(
+    0.0,
+    float(os.environ.get("OPENAI_RETRY_BACKOFF_SECONDS", "1")),
+)
+
+AWS_S3_ENABLED = env_bool(
+    "AWS_S3_ENABLED",
+    bool(os.environ.get("API_SIGNED_URL")),
+)
+API_SIGNED_URL = os.environ.get("API_SIGNED_URL", "").rstrip("/")
+API_SIGNED_URL_ACCESSKEY = os.environ.get("API_SIGNED_URL_ACCESSKEY", "")
+API_SIGNED_URL_SECRETKEY = os.environ.get("API_SIGNED_URL_SECRETKEY", "")
+API_SIGNED_URL_SESSION_TOKEN = os.environ.get("API_SIGNED_URL_SESSION_TOKEN", "")
+API_SIGNED_URL_ZONE = os.environ.get("API_SIGNED_URL_ZONE", "us-east-1")
+API_SIGNED_URL_TIMEOUT = int(os.environ.get("API_SIGNED_URL_TIMEOUT", "20"))
+AWS_S3_PREFIX = os.environ.get("AWS_S3_PREFIX", "files/adjuntos3/sga").strip("/")
+AWS_S3_MAX_JUSTIFICACION_BYTES = int(
+    os.environ.get("AWS_S3_MAX_JUSTIFICACION_BYTES", str(8 * 1024 * 1024))
+)
+AWS_S3_MAX_BACKUP_BYTES = int(
+    os.environ.get("AWS_S3_MAX_BACKUP_BYTES", str(100 * 1024 * 1024))
+)
+AWS_S3_MAX_BACKUP_UNCOMPRESSED_BYTES = int(
+    os.environ.get("AWS_S3_MAX_BACKUP_UNCOMPRESSED_BYTES", str(500 * 1024 * 1024))
+)
+AWS_S3_UPLOAD_PENDING_TTL_MINUTES = int(
+    os.environ.get("AWS_S3_UPLOAD_PENDING_TTL_MINUTES", "30")
+)
+BACKUP_ENCRYPTION_KEY = os.environ.get("BACKUP_ENCRYPTION_KEY") or SECRET_KEY
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": (
@@ -196,6 +229,8 @@ REST_FRAMEWORK = {
         "password_change": "5/hour",
         "logout": "10/minute",
         "token_refresh": "20/hour",
+        "backup": "3/hour",
+        "restore": "1/hour",
     },
 }
 
@@ -221,15 +256,28 @@ SPECTACULAR_SETTINGS = {
         "EstadoRegistroEnum": "sga.models.EstadoRegistro.choices",
         "EstadoMatriculaEnum": "sga.models.EstadoMatricula.choices",
         "EstadoAsistenciaEnum": "sga.models.EstadoAsistencia.choices",
+        "TipoArchivoCloudEnum": "sga.models.TipoArchivoCloud.choices",
+        "EstadoArchivoCloudEnum": "sga.models.EstadoArchivoCloud.choices",
+        "EstadoJustificacionEnum": "sga.models.EstadoJustificacion.choices",
+        "TipoBackupEnum": "sga.models.TipoBackup.choices",
+        "EstadoBackupEnum": "sga.models.EstadoBackup.choices",
+        "NivelLogroEnum": "sga.models.NivelLogro.choices",
         "ParentescoEnum": "sga.models.Parentesco.choices",
         "TipoParticipacionEnum": "sga.models.TipoParticipacion.choices",
         "TipoIncidenciaEnum": "sga.models.TipoIncidencia.choices",
         "NivelIncidenciaEnum": "sga.models.NivelIncidencia.choices",
         "EstadoIncidenciaEnum": "sga.models.EstadoIncidencia.choices",
         "EstadoEnvioEnum": "sga.models.EstadoEnvio.choices",
+        "TipoNotificacionEnum": "sga.models.TipoNotificacion.choices",
+        "PrioridadNotificacionEnum": "sga.models.PrioridadNotificacion.choices",
         "EstadoCorreoEnum": "sga.models.EstadoCorreo.choices",
         "TipoCorreoEnum": "sga.models.TipoCorreo.choices",
+        "TipoEventoAutenticacionEnum": "sga.models.TipoEventoAutenticacion.choices",
         "EstadoRevisionIAEnum": "sga.models.EstadoRevisionIA.choices",
+        "TipoAccionSeguimientoEnum": "sga.models.TipoAccionSeguimiento.choices",
+        "ResponsableAccionSeguimientoEnum": "sga.models.ResponsableAccionSeguimiento.choices",
+        "EstadoAccionSeguimientoEnum": "sga.models.EstadoAccionSeguimiento.choices",
+        "TipoActualizacionSeguimientoEnum": "sga.models.TipoActualizacionSeguimiento.choices",
     },
 }
 

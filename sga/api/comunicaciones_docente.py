@@ -9,6 +9,7 @@ from sga.models import RegistroAuditoria, TipoCorreo
 from sga.permissions import IsDocente
 from sga.serializers.comunicaciones_docente import ComunicacionDocenteSolicitudSerializer
 from sga.serializers.correos import CorreoInstitucionalSerializer
+from sga.serializers.notificaciones import NotificacionSerializer
 from sga.services.comunicaciones_docente import (
     enviar_comunicacion_docente,
     get_comunicaciones_docente,
@@ -79,6 +80,7 @@ def previsualizar_comunicacion(request):
                 for usuario in comunicacion["destinatarios"]
             ],
             "omitidos": comunicacion["omitidos"],
+            "advertencias": comunicacion["advertencias"],
             "texto": contenido["texto"],
             "html": contenido["html"],
         }
@@ -91,7 +93,7 @@ def previsualizar_comunicacion(request):
 def enviar_comunicacion(request):
     serializer = ComunicacionDocenteSolicitudSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
-    comunicacion, enviados, fallidos = enviar_comunicacion_docente(
+    comunicacion, enviados, fallidos, notificaciones = enviar_comunicacion_docente(
         request.user,
         serializer.validated_data,
     )
@@ -111,12 +113,22 @@ def enviar_comunicacion(request):
             entidad="CorreoInstitucional",
             entidad_id=str(correo.pk),
         )
+    for notificacion in notificaciones:
+        RegistroAuditoria.registrar_evento(
+            user=request.user,
+            accion="CREAR_NOTIFICACION_ACADEMICA",
+            modulo="docente",
+            entidad="Notificacion",
+            entidad_id=str(notificacion.pk),
+        )
 
     respuesta = {
         "detail": "Comunicacion procesada.",
         "enviados": CorreoInstitucionalSerializer(enviados, many=True).data,
         "fallidos": CorreoInstitucionalSerializer(fallidos, many=True).data,
         "omitidos": comunicacion["omitidos"],
+        "advertencias": comunicacion["advertencias"],
+        "notificaciones": NotificacionSerializer(notificaciones, many=True).data,
     }
     if not enviados:
         respuesta["detail"] = "No se pudo enviar el correo a ningun apoderado."

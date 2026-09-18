@@ -15,6 +15,7 @@ from sga.serializers import (
 )
 from sga.services.asistencia import (
     get_asistencias_docente,
+    notificar_asistencias_docente,
     registrar_asistencias_docente,
 )
 
@@ -70,6 +71,7 @@ def registrar_asistencias(request):
         request.user,
         **serializer.validated_data,
     )
+    notificaciones_generadas = notificar_asistencias_docente(request.user, asistencias)
     RegistroAuditoria.registrar_evento(
         user=request.user,
         accion="REGISTRAR_ASISTENCIAS",
@@ -87,6 +89,7 @@ def registrar_asistencias(request):
         {
             "creados": creados,
             "actualizados": actualizados,
+            "notificaciones_generadas": notificaciones_generadas,
             "registros": response_serializer.data,
         },
         status=response_status,
@@ -106,9 +109,12 @@ def actualizar_asistencia(request, asistencia_id):
     )
     serializer = ActualizarAsistenciaSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
+    estado_anterior = asistencia.estado
     asistencia.estado = serializer.validated_data["estado"]
     asistencia.justificacion = serializer.validated_data.get("justificacion")
     asistencia.save(update_fields=["estado", "justificacion"])
+    asistencia._debe_notificar = estado_anterior != asistencia.estado
+    notificar_asistencias_docente(request.user, [asistencia])
     RegistroAuditoria.registrar_evento(
         user=request.user,
         accion="ACTUALIZAR_ASISTENCIA",

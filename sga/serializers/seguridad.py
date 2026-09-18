@@ -1,9 +1,14 @@
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 from rest_framework import serializers
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+from rest_framework_simplejwt.serializers import TokenRefreshSerializer
+from rest_framework_simplejwt.tokens import RefreshToken
 
-from sga.services.seguridad import usuario_desde_token
+from sga.services.seguridad import configuracion_sesion, usuario_desde_token
 
 User = get_user_model()
 
@@ -11,6 +16,30 @@ User = get_user_model()
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150, trim_whitespace=True)
     password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
+class TokenRefreshInactividadSerializer(TokenRefreshSerializer):
+    def validate(self, attrs):
+        try:
+            refresh = RefreshToken(attrs["refresh"])
+        except TokenError as exc:
+            raise InvalidToken("El refresh token no es valido o ha expirado.") from exc
+
+        emitido_en = refresh.get("iat")
+        limite = settings.SESSION_IDLE_TIMEOUT_MINUTES * 60
+        if (
+            not isinstance(emitido_en, int)
+            or int(timezone.now().timestamp()) - emitido_en > limite
+        ):
+            try:
+                refresh.blacklist()
+            except TokenError:
+                pass
+            raise InvalidToken("La sesion se cerro por inactividad.")
+
+        datos = super().validate(attrs)
+        datos["session"] = configuracion_sesion()
+        return datos
 
 
 class MFAVerificarSerializer(serializers.Serializer):

@@ -49,6 +49,8 @@ class ActualizarAsistenciaSerializer(EstadoAsistenciaSerializer):
 
 
 class AsistenciaDocenteSerializer(serializers.ModelSerializer):
+    puede_justificar = serializers.SerializerMethodField()
+    justificacion_activa = serializers.SerializerMethodField()
     matricula_id = serializers.IntegerField(read_only=True)
     estudiante_id = serializers.IntegerField(
         source="matricula.estudiante_id",
@@ -93,4 +95,31 @@ class AsistenciaDocenteSerializer(serializers.ModelSerializer):
             "estado",
             "estado_label",
             "justificacion",
+            "puede_justificar",
+            "justificacion_activa",
         )
+
+    def get_puede_justificar(self, obj) -> bool:
+        if obj.estado not in (EstadoAsistencia.FALTA, EstadoAsistencia.TARDE):
+            return False
+        return not any(
+            item.estado not in ("RECHAZADA", "ELIMINADA")
+            for item in obj.sustentos.all()
+        )
+
+    def get_justificacion_activa(self, obj) -> dict | None:
+        justificacion = next(
+            (
+                item
+                for item in sorted(obj.sustentos.all(), key=lambda item: item.id, reverse=True)
+                if item.estado != "ELIMINADA"
+            ),
+            None,
+        )
+        if justificacion is None:
+            return None
+        return {
+            "id": justificacion.id,
+            "estado": justificacion.estado,
+            "estado_label": justificacion.get_estado_display(),
+        }

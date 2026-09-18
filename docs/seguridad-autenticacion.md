@@ -62,6 +62,19 @@ tener al menos 12 caracteres.
 
 ## Sesion
 
+La sesion usa un tiempo de inactividad configurable mediante
+SESSION_IDLE_TIMEOUT_MINUTES (30 minutos por defecto). Cada respuesta de login y
+refresh incluye session con idle_timeout_seconds, access_expires_in_seconds y
+refresh_rotation.
+
+El frontend debe renovar el access token solamente cuando exista actividad real
+o una solicitud del usuario. No debe ejecutar refresh en segundo plano mientras
+la aplicacion esta inactiva. Si la ultima renovacion supera el limite, el backend
+rechaza el refresh porque la sesion se cerro por inactividad.
+
+La rotacion permite que una sesion activa continue sin cerrarse por un tiempo
+total fijo.
+
 - `POST /api/auth/token/refresh/`: rota el refresh y bloquea el anterior.
 - `POST /api/auth/logout/`: recibe `{"refresh": "..."}` y lo bloquea.
 - `POST /api/auth/password/change/`: requiere JWT y recibe la contrasena actual,

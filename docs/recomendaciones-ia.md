@@ -13,6 +13,8 @@ Definir en .env:
     OPENAI_API_URL=https://api.openai.com/v1/responses
     OPENAI_TIMEOUT=45
     OPENAI_MAX_OUTPUT_TOKENS=1200
+    OPENAI_MAX_RETRIES=2
+    OPENAI_RETRY_BACKOFF_SECONDS=1
 
 La clave nunca debe enviarse al frontend ni guardarse en Git.
 
@@ -24,6 +26,7 @@ Todas las rutas requieren JWT con rol Docente.
 - GET /api/docente/recomendaciones-ia/{id}/
 - POST /api/docente/recomendaciones-ia/generar/
 - PATCH /api/docente/recomendaciones-ia/{id}/revisar/
+- POST /api/docente/recomendaciones-ia/{id}/publicar/
 
 Filtros del listado: asignacion_curso, matricula, periodo_academico y
 estado_revision.
@@ -47,5 +50,15 @@ Los estados permitidos son APROBADA, RECHAZADA y EDITADA. Las
 recomendaciones solo son visibles para estudiantes y apoderados cuando
 estan APROBADA o EDITADA.
 
+La generacion no envia alertas automaticamente. Despues de aprobarla o
+editarla, el docente puede publicarla al estudiante y, cuando corresponda, a
+sus apoderados. La publicacion crea una notificacion interna, intenta enviar
+correo y evita duplicados por recomendacion y destinatario.
+
 Errores de configuracion, cuota, timeout o indisponibilidad de OpenAI se
 devuelven como 503 sin incluir credenciales ni el cuerpo privado del proveedor.
+
+La llamada realiza hasta dos reintentos adicionales, con espera exponencial de
+1 y 2 segundos, ante errores transitorios de red, timeout, HTTP 429 o HTTP 5xx.
+No se reintentan credenciales invalidas, solicitudes rechazadas ni respuestas
+con formato incorrecto.

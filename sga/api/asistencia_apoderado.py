@@ -17,7 +17,7 @@ def asistencia_apoderado(request):
     estudiante_ids = get_vinculos_apoderado(request.user).values_list("estudiante_id", flat=True)
     queryset = Asistencia.objects.filter(matricula__estudiante_id__in=estudiante_ids).select_related(
         "matricula__estudiante__perfil__user", "asignacion_curso__curso", "asignacion_curso__seccion__grado"
-    ).order_by("-fecha")
+    ).prefetch_related("sustentos").order_by("-fecha")
     for param, lookup in {"estudiante": "matricula__estudiante_id", "asignacion_curso": "asignacion_curso_id"}.items():
         value = request.query_params.get(param)
         if value is not None:

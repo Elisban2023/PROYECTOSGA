@@ -6,6 +6,8 @@ from django.db import transaction
 from django.utils import timezone
 
 from sga.models import (
+    AccionSeguimiento,
+    ActualizacionAccionSeguimiento,
     AnioAcademico,
     Apoderado,
     AsignacionCurso,
@@ -16,6 +18,7 @@ from sga.models import (
     CriterioCalificacion,
     Curso,
     Docente,
+    EstadoAccionSeguimiento,
     EstadoAcademico,
     EstadoEnvio,
     EstadoGeneral,
@@ -87,6 +90,12 @@ class Command(BaseCommand):
             periodos,
         )
         self._configurar_seguimiento(estudiantes, asignaciones, apoderados)
+        self._configurar_acciones_seguimiento(
+            estudiantes,
+            asignaciones,
+            periodos,
+            apoderados,
+        )
 
         self.stdout.write(
             self.style.SUCCESS(
@@ -541,6 +550,140 @@ class Command(BaseCommand):
                         "activo": True,
                     },
                 )
+
+    def _configurar_acciones_seguimiento(
+        self,
+        estudiantes,
+        asignaciones,
+        periodos,
+        apoderados,
+    ):
+        estudiante = estudiantes["alumno.prueba.sga"]
+        matricula = Matricula.objects.get(
+            estudiante=estudiante,
+            anio_academico__anio=2026,
+        )
+        cursos = {
+            asignacion.curso.nombre: asignacion
+            for asignacion in asignaciones
+            if asignacion.seccion_id == matricula.seccion_id
+        }
+        arte = cursos["Arte y Cultura"]
+        comunicacion = next(
+            asignacion
+            for nombre, asignacion in cursos.items()
+            if nombre.startswith("Comunicaci")
+        )
+        periodo = periodos["Tercer Bimestre"]
+
+        pendiente, _ = AccionSeguimiento.objects.update_or_create(
+            matricula=matricula,
+            asignacion_curso=arte,
+            titulo="Preparar la sustentacion del proyecto artistico",
+            defaults={
+                "periodo_academico": periodo,
+                "docente": arte.docente,
+                "tipo": "REFUERZO",
+                "responsable": "ESTUDIANTE",
+                "prioridad": "NORMAL",
+                "descripcion": (
+                    "Organizar las ideas principales y practicar una exposicion "
+                    "breve antes de presentar el proyecto."
+                ),
+                "estado": EstadoAccionSeguimiento.PENDIENTE,
+                "fecha_limite": date(2026, 9, 25),
+                "fecha_completada": None,
+                "resultado": None,
+                "visible_estudiante": True,
+                "visible_apoderado": True,
+                "activo": True,
+            },
+        )
+
+        vencida, _ = AccionSeguimiento.objects.update_or_create(
+            matricula=matricula,
+            asignacion_curso=comunicacion,
+            titulo="Reforzar la organizacion de un texto narrativo",
+            defaults={
+                "periodo_academico": periodo,
+                "docente": comunicacion.docente,
+                "tipo": "RECUPERACION",
+                "responsable": "COMPARTIDA",
+                "prioridad": "ALTA",
+                "descripcion": (
+                    "Revisar el borrador, ordenar inicio, nudo y desenlace, y "
+                    "presentar una segunda version con apoyo familiar."
+                ),
+                "estado": EstadoAccionSeguimiento.EN_PROGRESO,
+                "fecha_limite": date(2026, 9, 5),
+                "fecha_completada": None,
+                "resultado": None,
+                "visible_estudiante": True,
+                "visible_apoderado": True,
+                "activo": True,
+            },
+        )
+
+        completada, _ = AccionSeguimiento.objects.update_or_create(
+            matricula=matricula,
+            asignacion_curso=arte,
+            titulo="Organizar el horario de practica semanal",
+            defaults={
+                "periodo_academico": periodo,
+                "docente": arte.docente,
+                "tipo": "COMPROMISO",
+                "responsable": "COMPARTIDA",
+                "prioridad": "NORMAL",
+                "descripcion": (
+                    "Definir tres momentos breves de practica durante la semana "
+                    "y registrar el cumplimiento."
+                ),
+                "estado": EstadoAccionSeguimiento.COMPLETADA,
+                "fecha_limite": date(2026, 8, 28),
+                "fecha_completada": timezone.make_aware(
+                    datetime.combine(date(2026, 8, 28), time(16, 30))
+                ),
+                "resultado": (
+                    "El estudiante cumplio el horario acordado y presento sus "
+                    "actividades dentro del plazo."
+                ),
+                "visible_estudiante": True,
+                "visible_apoderado": True,
+                "activo": True,
+            },
+        )
+
+        apoderado_user = apoderados["prueba"].perfil.user
+        actualizaciones = (
+            (
+                vencida,
+                estudiante.perfil.user,
+                "AVANCE",
+                "Complete el primer borrador y estoy corrigiendo el desenlace.",
+                50,
+            ),
+            (
+                vencida,
+                apoderado_user,
+                "EVIDENCIA",
+                "En casa revisamos el horario y se acompano la lectura del borrador.",
+                None,
+            ),
+            (
+                completada,
+                arte.docente.perfil.user,
+                "COMENTARIO",
+                "Se verifico el cumplimiento del acuerdo durante la semana.",
+                None,
+            ),
+        )
+        for accion, autor, tipo, comentario, progreso in actualizaciones:
+            ActualizacionAccionSeguimiento.objects.update_or_create(
+                accion=accion,
+                autor=autor,
+                tipo=tipo,
+                defaults={"comentario": comentario, "progreso": progreso},
+            )
 
     def _asegurar_rol(self, user, rol):
         grupo, _ = Group.objects.get_or_create(name=rol)

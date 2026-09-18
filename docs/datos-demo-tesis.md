@@ -8,6 +8,10 @@ Ejecucion:
 
     python manage.py seed_demo_tesis --confirm
 
+El escenario incluye acciones de seguimiento pendientes, vencidas y completadas
+para `alumno.prueba.sga`, con avances del estudiante, acompanamiento del apoderado
+y cierre docente. El comando es idempotente y no envia correos reales.
+
 El conjunto contiene dos secciones de secundaria, cuatro cursos por seccion,
 doce matriculas activas, apoderados vinculados, cuatro bimestres y registros
 de asistencia, calificaciones, participacion, observaciones, incidencias y
