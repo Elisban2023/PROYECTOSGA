@@ -73,6 +73,14 @@ class SeguimientoAdministrativoTests(TestCase):
             anio_academico=anio,
             estado=EstadoGeneral.ACTIVO,
         )
+        otro_curso = Curso.objects.create(nombre="Comunicacion")
+        self.otra_asignacion = AsignacionCurso.objects.create(
+            curso=otro_curso,
+            docente=self.otro_docente,
+            seccion=seccion,
+            anio_academico=anio,
+            estado=EstadoGeneral.ACTIVO,
+        )
         matricula = Matricula.objects.create(
             estudiante=estudiante,
             seccion=seccion,
@@ -87,6 +95,14 @@ class SeguimientoAdministrativoTests(TestCase):
             fecha=timezone.now(),
             categoria="ACADEMICA",
             descripcion="Requiere seguimiento en resolucion de problemas.",
+        )
+        self.otra_observacion = ObservacionAcademica.objects.create(
+            matricula=matricula,
+            asignacion_curso=self.otra_asignacion,
+            docente=self.otro_docente,
+            fecha=timezone.now(),
+            categoria="ACADEMICA",
+            descripcion="Requiere seguimiento en comprension de textos.",
         )
         self.incidencia = IncidenciaAcademica.objects.create(
             matricula=matricula,
@@ -158,3 +174,64 @@ class SeguimientoAdministrativoTests(TestCase):
         response = self.client.get("/api/administracion/seguimiento/docentes/")
 
         self.assertEqual(response.status_code, 403)
+
+    def test_docente_lista_y_crea_incidencias_de_sus_observaciones(self):
+        self.client.force_authenticate(self.docente_user)
+
+        listado = self.client.get("/api/incidencias/")
+        creacion = self.client.post(
+            "/api/incidencias/",
+            {
+                "matricula": self.observacion.matricula_id,
+                "observacion": self.observacion.id,
+                "tipo": "ACADEMICA",
+                "descripcion": "Presenta una dificultad recurrente que requiere seguimiento.",
+                "nivel": "MEDIO",
+                "estado": EstadoIncidencia.ABIERTA,
+                "fecha_registro": timezone.now().isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(listado.status_code, 200)
+        self.assertEqual(listado.data["count"], 1)
+        self.assertEqual(creacion.status_code, 201)
+
+    def test_docente_no_puede_usar_observacion_de_otro_docente(self):
+        self.client.force_authenticate(self.docente_user)
+
+        response = self.client.post(
+            "/api/incidencias/",
+            {
+                "matricula": self.otra_observacion.matricula_id,
+                "observacion": self.otra_observacion.id,
+                "tipo": "ACADEMICA",
+                "descripcion": "Intento de registrar una incidencia fuera de su alcance.",
+                "nivel": "BAJO",
+                "estado": EstadoIncidencia.ABIERTA,
+                "fecha_registro": timezone.now().isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("observacion", response.data)
+
+    def test_docente_debe_vincular_una_observacion_propia(self):
+        self.client.force_authenticate(self.docente_user)
+
+        response = self.client.post(
+            "/api/incidencias/",
+            {
+                "matricula": self.observacion.matricula_id,
+                "tipo": "ACADEMICA",
+                "descripcion": "Incidencia sin una observacion que determine el curso responsable.",
+                "nivel": "BAJO",
+                "estado": EstadoIncidencia.ABIERTA,
+                "fecha_registro": timezone.now().isoformat(),
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("observacion", response.data)

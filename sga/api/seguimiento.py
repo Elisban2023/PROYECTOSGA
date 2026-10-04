@@ -1,6 +1,10 @@
 ﻿from django.utils import timezone
 
+from rest_framework.exceptions import ValidationError
+
 from sga.models import IncidenciaAcademica, ObservacionAcademica, RecomendacionIA
+from sga.permissions import IsAdminOrDirectivoOrDocente
+from sga.roles import is_admin_or_directivo
 from sga.serializers import (
     IncidenciaAcademicaSerializer,
     ObservacionAcademicaSerializer,
@@ -53,6 +57,7 @@ class ObservacionAcademicaViewSet(AdminCatalogViewSet):
         return queryset
 
 class IncidenciaAcademicaViewSet(AdminCatalogViewSet):
+    permission_classes = (IsAdminOrDirectivoOrDocente,)
     logical_delete_message = "Incidencia cerrada correctamente."
     queryset = IncidenciaAcademica.objects.select_related(
         "matricula__estudiante__perfil__user",
@@ -82,6 +87,12 @@ class IncidenciaAcademicaViewSet(AdminCatalogViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+        if not is_admin_or_directivo(self.request.user):
+            docente = getattr(getattr(self.request.user, "perfil", None), "docente", None)
+            if docente is None:
+                return queryset.none()
+            queryset = queryset.filter(observacion__docente_id=docente.id)
+
         filters_map = {
             "matricula": "matricula_id",
             "estudiante": "matricula__estudiante_id",
@@ -97,6 +108,37 @@ class IncidenciaAcademicaViewSet(AdminCatalogViewSet):
             if value:
                 queryset = queryset.filter(**{field: value})
         return queryset
+
+    def perform_create(self, serializer):
+        self._validar_alcance_docente(serializer)
+        super().perform_create(serializer)
+
+    def perform_update(self, serializer):
+        self._validar_alcance_docente(serializer)
+        super().perform_update(serializer)
+
+    def _validar_alcance_docente(self, serializer):
+        if is_admin_or_directivo(self.request.user):
+            return
+
+        docente = getattr(getattr(self.request.user, "perfil", None), "docente", None)
+        observacion = serializer.validated_data.get(
+            "observacion",
+            getattr(serializer.instance, "observacion", None),
+        )
+        if docente is None or observacion is None:
+            raise ValidationError(
+                {
+                    "observacion": (
+                        "El docente debe vincular la incidencia con una observacion "
+                        "academica de su curso."
+                    )
+                }
+            )
+        if observacion.docente_id != docente.id:
+            raise ValidationError(
+                {"observacion": "La observacion no pertenece al docente autenticado."}
+            )
 
 
 
